@@ -133,8 +133,12 @@ typedef struct {
  ** MPFR type definitions.
  ** ----------------------------------------------------------------- */
 
-typedef int mp_odrf_mpfr_function_fun_t       (mpfr_ptr y, mpfr_ptr x, void * params);
-typedef int mp_odrf_mpfr_function_deriv_fun_t (mpfr_ptr x, void * params, mpfr_ptr y, mpfr_ptr dy);
+typedef mp_odrf_operation_code_t \
+  mp_odrf_mpfr_function_fun_t       (mpfr_ptr y, mpfr_ptr x, void * params,
+				     const mp_odrf_error_t ** E);
+typedef mp_odrf_operation_code_t \
+  mp_odrf_mpfr_function_deriv_fun_t (mpfr_ptr x, void * params, mpfr_ptr y, mpfr_ptr dy,
+				     const mp_odrf_error_t ** E);
 
 typedef struct {
   mp_odrf_mpfr_function_fun_t *		function;
@@ -148,10 +152,10 @@ typedef struct {
   void *				params;
 } mp_odrf_mpfr_function_fdf_t;
 
-#define MP_ODRF_MPFR_FN_EVAL(F,Y,X)			(((F)->function)(Y, X, (F)->params))
-#define MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF,Y,X)		(((FDF)->f)(Y, X, (FDF)->params))
-#define MP_ODRF_MPFR_FN_FDF_EVAL_DF(FDF,DY,X)		(((FDF)->df)(DY, X, (FDF)->params))
-#define MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF,X,Y,DY)	(((FDF)->fdf)(X, (FDF)->params, Y, DY))
+#define MP_ODRF_MPFR_FN_EVAL(F,Y,X,EE)			(((F)->function)(Y, X, (F)->params, EE))
+#define MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF,Y,X,EE)		(((FDF)->f)     (Y, X, (FDF)->params, EE))
+#define MP_ODRF_MPFR_FN_FDF_EVAL_DF(FDF,DY,X,EE)	(((FDF)->df)    (DY, X, (FDF)->params, EE))
+#define MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF,X,Y,DY,EE)	(((FDF)->fdf)   (X, (FDF)->params, Y, DY, EE))
 
 /* ------------------------------------------------------------------ */
 

@@ -42,7 +42,7 @@ typedef struct {
 } bracket_meta_data_tag_t;
 typedef bracket_meta_data_tag_t *	bracket_meta_data_t;
 
-int VERBOSE=0;
+static int VERBOSE=0;
 
 /* Solve the problems with all  the root bracketing algorithms, for both
    the sine and minus sine functions.  The argument DATA must be already
@@ -56,16 +56,13 @@ static void doit (bracket_meta_data_t data);
    function will reuse it for multiple initial brackets. */
 static void subdoit (bracket_meta_data_t data);
 
-/* Trigonometric sine and minus  trigonometric sine functions wrapped to
-   be used by the root bracketing  algorithms.  We know that the root it
-   at zero. */
-static int sine_function       (mpfr_t y, mpfr_t x, void * p MP_ODRF_UNUSED);
-static int minus_sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_UNUSED);
-
 static void test_with_interval_criterion (bracket_meta_data_t data);
 static void test_with_delta_criterion    (bracket_meta_data_t data);
 static void test_with_residual_criterion (bracket_meta_data_t data);
 
+/* Trigonometric sine and minus  trigonometric sine functions wrapped to
+   be used by the root bracketing  algorithms.  We know that the root it
+   at zero. */
 static mp_odrf_mpfr_function_fun_t	sine_function;
 static mp_odrf_mpfr_function_fun_t	minus_sine_function;
 
@@ -88,7 +85,6 @@ main (void)
   data.driver = mp_odrf_mpfr_root_fsolver_bisection;
   doit(&data);
 
-#if 0
   title("one dimensional root finding, falsepos algorithm");
   data.driver = mp_odrf_mpfr_root_fsolver_falsepos;
   doit(&data);
@@ -96,7 +92,6 @@ main (void)
   title("one dimensional root finding, brent algorithm");
   data.driver = mp_odrf_mpfr_root_fsolver_brent;
   doit(&data);
-#endif
 
   exit(EXIT_SUCCESS);
 }
@@ -377,7 +372,7 @@ test_with_residual_criterion (bracket_meta_data_t data)
       validate(MP_ODRF_OK == rv, "error iterating: %s", E->description);
       if (MP_ODRF_OK != rv) goto end;
 
-      MP_ODRF_MPFR_FN_EVAL(&F,residual,mp_odrf_mpfr_root_fsolver_root(solver));
+      MP_ODRF_MPFR_FN_EVAL(&F,residual,mp_odrf_mpfr_root_fsolver_root(solver), &E);
       if (VERBOSE) {
 	mpfr_fprintf(stderr, "- current interval\t[%30Rf, %30Rf]\n",
 		     mp_odrf_mpfr_root_fsolver_x_lower(solver),
@@ -418,14 +413,16 @@ test_with_residual_criterion (bracket_meta_data_t data)
 /* We know  that the root is  at zero.  So  we will test the  result for
    zero. */
 
-static int
-sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_UNUSED)
+static mp_odrf_operation_code_t
+sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_UNUSED,
+	       const mp_odrf_error_t ** E)
 {
   mpfr_sin(y, x, GMP_RNDN);
   return MP_ODRF_OK;
 }
-static int
-minus_sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_UNUSED)
+static mp_odrf_operation_code_t
+minus_sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_UNUSED,
+		     const mp_odrf_error_t ** E)
 {
   mpfr_sin(y, x, GMP_RNDN);
   mpfr_neg(y, y, GMP_RNDN);

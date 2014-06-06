@@ -39,9 +39,9 @@ libmpodrf_la_SOURCES	= \
 	src/mp-odrf-version.c				\
 	src/mp-odrf-errors.c				\
 	src/mp-odrf-public-api.c			\
-	src/mp-odrf-root-bracketing-bisection.c
-
-#src/mp-odrf.c
+	src/mp-odrf-root-bracketing-bisection.c		\
+	src/mp-odrf-root-bracketing-falsepos.c		\
+	src/mp-odrf-root-bracketing-brent.c
 
 #page
 #### tests

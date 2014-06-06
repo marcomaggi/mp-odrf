@@ -44,8 +44,10 @@
 
 #define SAFE_FUNC_CALL(EE, RETVAL, F, X, Y)			\
   do {								\
-    RETVAL = MP_ODRF_MPFR_FN_EVAL(F, Y, X);			\
-    if (! mpfr_number_p(Y)) {					\
+    RETVAL = MP_ODRF_MPFR_FN_EVAL(F, Y, X, EE);			\
+    if (MP_ODRF_ERROR == RETVAL) {				\
+      ;								\
+    } else if (! mpfr_number_p(Y)) {				\
       *EE	= &mp_odrf_function_value_is_not_finite;	\
       RETVAL	= MP_ODRF_ERROR;				\
     }								\
@@ -56,6 +58,7 @@
  ** Constants.
  ** ----------------------------------------------------------------- */
 
+#define GSL_DBL_EPSILON        2.2204460492503131e-16
 
 
 /** --------------------------------------------------------------------
