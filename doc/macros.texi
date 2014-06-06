@@ -292,6 +292,10 @@
 @acronym{FFMPEG}
 @end macro
 
+@macro gsl{}
+@acronym{GSL}
+@end macro
+
 @macro gpg{}
 @acronym{GPG}
 @end macro

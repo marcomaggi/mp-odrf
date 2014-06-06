@@ -74,17 +74,23 @@ AC_CACHE_SAVE
 dnl page
 #### external libraries
 
-AC_CHECK_HEADERS([gmp.h],,[AC_MSG_ERROR([Cannot find libgmp.])])
-AC_CHECK_LIB([gmp],[__gmpn_add],,[AC_MSG_ERROR([Cannot find libgmp.])])
+AC_CHECK_HEADERS([gmp.h],,
+  [AC_MSG_ERROR([Cannot find libgmp.])])
+AC_CHECK_LIB([gmp],[__gmpn_add],,
+  [AC_MSG_ERROR([Cannot find libgmp.])])
 
-AC_CHECK_LIB([mpfr],[mpfr_init],,[AC_MSG_FAILURE([missing or unusable MPFR library],[2])])
-AC_CHECK_HEADERS([mpfr.h],,[AC_MSG_FAILURE([missing mpfr.h header],[2])])
+AC_CHECK_HEADERS([mpfr.h],,
+  [AC_MSG_FAILURE([missing mpfr.h header],[2])])
+AC_CHECK_LIB([mpfr],[mpfr_init],,
+  [AC_MSG_FAILURE([missing or unusable MPFR library],[2])])
 
 dnl AC_CHECK_HEADERS([mpc.h],,[AC_MSG_FAILURE([missing mpc.h header],[2])])
 dnl AC_CHECK_LIB([mpc],[mpc_clear],,[AC_MSG_FAILURE([missing or unusable MPC library],[2])])
 
-AC_CHECK_HEADERS([mpfi.h],,[AC_MSG_FAILURE([missing mpfi.h header],[2])])
-AC_CHECK_LIB([mpfi],[mpfi_init],,[AC_MSG_FAILURE([missing or unusable MPFI library],[2])])
+AC_CHECK_HEADERS([mpfi.h],,
+  [AC_MSG_FAILURE([missing mpfi.h header],[2])])
+AC_CHECK_LIB([mpfi],[mpfi_init],,
+  [AC_MSG_FAILURE([missing or unusable MPFI library],[2])])
 
 AC_CACHE_SAVE
 

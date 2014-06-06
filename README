@@ -20,12 +20,16 @@ Topics
 
 This  package   installs  a   C  language  library   reimplementing  the
 one-dimensional root-finding algorithms from  the GNU Scientific Library
-using the multiple precision numbers defined by MPFR and MPFI.
+(GSL) using the multiple precision numbers defined by MPFR and MPFI.
 
   This  package  depends  upon  the following  packages:  GMP,  the  GNU
 Multiple  Precision arithmetic  library;  MPFR,  the Multiple  Precision
 Floating-Point   Reliable   library;   MPFI,  the   Multiple   Precision
 Floating-Point Interval library.
+
+  Both the code and the documentation are reworked from the original GSL
+distribution;  however this  package does  not depend  on the  GSL being
+installed.
 
   The package  makes use  of the  GNU Autotools  and it  is tested  on a
 GNU+Linux system.
@@ -37,6 +41,9 @@ he had tested with: GMP version  6.0.0, MPFR version 3.1.2, MPFI version
 
 2. License
 ----------
+
+See the  individual C language  source files for the  original copyright
+notices.
 
 Copyright (c) 2012-2014 Marco Maggi
 <marco.maggi-ipsu@poste.it>
@@ -116,8 +123,24 @@ Read the documentation.
 A. Credits
 ----------
 
-The  stuff was  written by  Marco Maggi.   If this  package exists  it's
-because of the great GNU software tools that he uses all the time.
+The stuff was  written by Marco Maggi, rewriting the  original code from
+the GSL.  If this package exists  it's because of the great GNU software
+tools that he uses all the time.
+
+  GSL is  Copyright Free Software  Foundation.  It  is the work  of many
+people, and it  is maintained by the  GSL Team; see the  AUTHORS file in
+the GSL distribution.
+
+  MPFR is Copyright  Free Software Foundation, Inc.   Contributed by the
+Arenaire and Cacao projects, INRIA.  It  is the work of many people, and
+it  is currently  maintained  (mainly) by  Paul  Zimmermann and  Vincent
+Lefevre.
+
+  MPFI  is Copyright  1999, 2000,  2001, 2002,  2003, 2004,  2005, 2010,
+2012,  Spaces   project,  Inria   Lorraine  and  Salsa   project,  INRIA
+Rocquencourt, and  Arenaire project, Inria Rhone-Alpes,  France and Lab.
+ANO, USTL  (Univ. of Lille), France.   See the AUTHORS file  in the MPFI
+distribution.
 
 
 B. Bugs

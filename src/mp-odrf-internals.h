@@ -39,10 +39,36 @@
 
 
 /** --------------------------------------------------------------------
+ ** Preprocessor macros.
+ ** ----------------------------------------------------------------- */
+
+#define SAFE_FUNC_CALL(EE, RETVAL, F, X, Y)			\
+  do {								\
+    RETVAL = MP_ODRF_MPFR_FN_EVAL(F, Y, X);			\
+    if (! mpfr_number_p(Y)) {					\
+      *EE	= &mp_odrf_function_value_is_not_finite;	\
+      RETVAL	= MP_ODRF_ERROR;				\
+    }								\
+  } while (0);
+
+
+/** --------------------------------------------------------------------
  ** Constants.
  ** ----------------------------------------------------------------- */
 
 
+
+/** --------------------------------------------------------------------
+ ** Private data structures.
+ ** ----------------------------------------------------------------- */
+
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_no_memory;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_invalid_bracket_interval;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_relative_tolerance_is_negative;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_absolute_tolerance_is_negative;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_lower_bound_larger_than_upper_bound;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_endpoints_do_not_straddle;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_function_value_is_not_finite;
 
 
 /** --------------------------------------------------------------------

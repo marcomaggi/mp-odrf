@@ -35,22 +35,42 @@ include_HEADERS		= src/mp-odrf.h
 lib_LTLIBRARIES		= libmpodrf.la
 libmpodrf_la_LDFLAGS	= -version-info $(mp_odrf_CURRENT):$(mp_odrf_REVISION):$(mp_odrf_AGE)
 libmpodrf_la_SOURCES	= \
-	src/mp-odrf-internals.h		\
-	src/mp-odrf-version.c
+	src/mp-odrf-internals.h				\
+	src/mp-odrf-version.c				\
+	src/mp-odrf-errors.c				\
+	src/mp-odrf-public-api.c			\
+	src/mp-odrf-root-bracketing-bisection.c
+
+#src/mp-odrf.c
 
 #page
 #### tests
 
 check_PROGRAMS	= \
-	tests/version
+	tests/version		\
+	tests/root-bracketing
 
-TESTS			= $(check_PROGRAMS)
+#	tests/root-polishing
 
-mp_odrf_tests_cppflags	= -I$(top_srcdir)/src
-mp_odrf_tests_ldadd	= libmpodrf.la
+TESTS				= $(check_PROGRAMS)
 
-tests_version_CPPFLAGS	= $(mp_odrf_tests_cppflags)
-tests_version_LDADD	= $(mp_odrf_tests_ldadd)
+mp_odrf_tests_cppflags		= -I$(top_srcdir)/src -I$(top_srcdir)/tests
+mp_odrf_tests_ldadd		= libmpodrf.la
+mp_odrf_tests_sources		= tests/test.h tests/debug.h
+
+tests_version_CPPFLAGS		= $(mp_odrf_tests_cppflags)
+tests_version_LDADD		= $(mp_odrf_tests_ldadd)
+tests_version_SOURCES		= tests/version.c $(mp_odrf_tests_sources)
+
+tests_root_bracketing_CPPFLAGS	= $(mp_odrf_tests_cppflags)
+tests_root_bracketing_LDADD	= $(mp_odrf_tests_ldadd)
+tests_root_bracketing_SOURCES	= tests/root-bracketing.c $(mp_odrf_tests_sources)
+
+# tests_root_polishing_CPPFLAGS	= $(mp_odrf_tests_cppflags)
+# tests_root_polishing_LDADD	= $(mp_odrf_tests_ldadd)
+# tests_root_polishing_SOURCES	= tests/root-polishing.c $(mp_odrf_tests_sources)
+
+## --------------------------------------------------------------------
 
 installcheck-local: $(TESTS)
 	@for f in $(TESTS); do $(builddir)/$$f; done

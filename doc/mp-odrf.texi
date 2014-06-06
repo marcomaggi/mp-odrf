@@ -16,7 +16,7 @@
 
 @c To be used as @value{PACKAGE} whenever we need to include the full
 @c name of this package.
-@set PACKAGE                    MP ODRF
+@set PACKAGE                    MP-ODRF
 
 @c To be used as @value{PACKAGE} whenever we need to include the
 @c nickname of the project: the name that is used to compose the
@@ -49,7 +49,9 @@ distributed under the terms of the @gnu{} General Public License
 (@gpl{}).
 
 @noindent
-Copyright @copyright{} @value{COPYRIGHT_YEARS} by @value{AUTHOR} @value{AUTHOR_EMAIL}
+Copyright @copyright{} @value{COPYRIGHT_YEARS} by @value{AUTHOR} @value{AUTHOR_EMAIL}@*
+Copyright @copyright{} 1996, 1997, 1998, 1999, 2000, 2001, 2002,
+2003, 2004, 2005, 2006, 2007, 2008 The GSL Team.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -128,13 +130,17 @@ Indexes
 
 This document describes version @value{VERSION} of @value{PACKAGE}, a C
 language library reimplementing the one--dimensional root--finding
-algorithms from the @gnu{} Scientific Library using the multiple
-precision numbers defined by @mpfr{} and @mpfi{}.
+algorithms from the @gnu{} Scientific Library (@gsl{}) using the
+multiple precision numbers defined by @mpfr{} and @mpfi{}.
 
 This package depends upon the following packages: @gmp{}, the @gnu{}
 Multiple Precision arithmetic library; @mpfr{}, the Multiple Precision
 Floating--Point Reliable library; @mpfi{}, the Multiple Precision
 Floating--Point Interval library.
+
+Both the code and the documentation are reworked from the original
+@gsl{} distribution; however this package does not depend on the @gsl{}
+being installed.
 
 @value{PACKAGE} installs the single header file @file{mp-odrf.h}.  All
 the function names in the @api{} are prefixed with @code{mp_odrf_}; all
@@ -150,8 +156,19 @@ are prefixed with @code{mp_odrf_} and suffixed with @code{_t}.
 @section Linking code with the library
 
 
-This package installs a data file for @command{pkg-config}, so when
-searching for the installed library with the @gnu{} Autotools, we can:
+This package installs a data file for @command{pkg-config}; we can
+inspect it with:
+
+@example
+$ pkg-config libmpodrf --cflags
+-I/usr/local/include
+
+$ pkg-config libmpodrf --libs
+-L/usr/local/lib64 -lmpodrf
+@end example
+
+When preparing a package that must link with the library distributed by
+@value{PACKAGE}, we can use the @gnu{} Autotools as follows:
 
 @itemize
 @item
@@ -159,15 +176,35 @@ Install the file @file{pkg.m4} from @file{/usr/share/aclocal} into the
 source tree of the package, for example under @file{meta/autoconf/}.
 
 @item
-Include @file{pkg.m4} in the template by adding the following line to
-@file{acinclude.m4}:
+Include @file{pkg.m4} in the template @file{configure.ac} by adding the
+following line to @file{acinclude.m4}:
 
 @example
 m4_include(meta/autoconf/pkg.m4)
 @end example
 
 @item
-Just add the following macro use to @file{configure.ac}:
+Search for the @gmp{}, @mpfr{} and @mpfi{} libraries:
+
+@example
+AC_CHECK_HEADERS([gmp.h],,
+  [AC_MSG_ERROR([Cannot find libgmp.])])
+AC_CHECK_LIB([gmp],[__gmpn_add],,
+  [AC_MSG_ERROR([Cannot find libgmp.])])
+
+AC_CHECK_HEADERS([mpfr.h],,
+  [AC_MSG_FAILURE([missing mpfr.h header],[2])])
+AC_CHECK_LIB([mpfr],[mpfr_init],,
+  [AC_MSG_FAILURE([missing or unusable MPFR library],[2])])
+
+AC_CHECK_HEADERS([mpfi.h],,
+  [AC_MSG_FAILURE([missing mpfi.h header],[2])])
+AC_CHECK_LIB([mpfi],[mpfi_init],,
+  [AC_MSG_FAILURE([missing or unusable MPFI library],[2])])
+@end example
+
+@item
+Add the following macro use to @file{configure.ac}:
 
 @example
 PKG_CHECK_MODULES([MP_ODRF],[mp-odrf >= 0.1])
@@ -299,12 +336,12 @@ Test @var{s} for convergence, and repeat iteration if necessary.
 @end enumerate
 
 @noindent
-The state for bracketing solvers is held in a @code{mpgsl_root_fsolver}
-struct.  The updating procedure uses only function evaluations (not
-derivatives).  The state for root polishing solvers is held in a
-@code{mpgsl_root_fdfsolver} struct.  The updates require both the
-function and its derivative (hence the name @code{fdf}) to be supplied
-by the user.
+The state for bracketing solvers is held in a
+@code{mp_odrf_mpfr_root_fsolver_t} struct.  The updating procedure uses
+only function evaluations (not derivatives).  The state for root
+polishing solvers is held in a @code{mp_odrf_mpfr_root_fdfsolver_t}
+struct.  The updates require both the function and its derivative (hence
+the name @code{fdf}) to be supplied by the user.
 
 @c page
 @node one root caveats
@@ -2011,7 +2048,7 @@ main (void)
 For information on the Brent-Dekker algorithm see the following two
 papers:
 
-@itemize @asis
+@itemize
 @item
 R. P. Brent, ``An algorithm with guaranteed convergence for finding a
 zero of a function'', @cite{Computer Journal}, 14 (1971) 422--425
@@ -2021,8 +2058,6 @@ J. C. P. Bus and T. J. Dekker, ``Two Efficient Algorithms with Guaranteed
 Convergence for Finding a Zero of a Function'', @cite{ACM Transactions of
 Mathematical Software}, Vol.@: 1 No.@: 4 (1975) 330--345
 @end itemize
-
-
 
 @c page
 @c ------------------------------------------------------------
