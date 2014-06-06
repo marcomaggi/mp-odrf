@@ -27,7 +27,7 @@ dnl page
 #### libraries interface version
 
 dnl This is the version stored in the pkg-config data file.
-AC_SUBST([MP_ORDF_PKG_CONFIG_VERSION],[0.1])
+AC_SUBST([MP_ODRF_PKG_CONFIG_VERSION],[0.1])
 
 MM_LIBTOOL_LIBRARY_VERSIONS([mp_odrf],0,0,0)
 
