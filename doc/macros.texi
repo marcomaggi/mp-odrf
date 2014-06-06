@@ -300,6 +300,14 @@
 @acronym{GMP}
 @end macro
 
+@macro mpfr{}
+@acronym{MPFR}
+@end macro
+
+@macro mpfi{}
+@acronym{MPFI}
+@end macro
+
 @macro gcc{}
 @acronym{GCC}
 @end macro

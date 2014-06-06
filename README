@@ -1,5 +1,5 @@
 
-	    Multiple Precision One Dimensional Root Finding
+	    Multiple Precision One-Dimensional Root-Finding
 	    ===============================================
 
 
@@ -18,11 +18,21 @@ Topics
 1. Introduction
 ---------------
 
-This  package installs  a  C language  library  implementing a  template
-library.
+This  package   installs  a   C  language  library   reimplementing  the
+one-dimensional root-finding algorithms from  the GNU Scientific Library
+using the multiple precision numbers defined by MPFR and MPFI.
+
+  This  package  depends  upon  the following  packages:  GMP,  the  GNU
+Multiple  Precision arithmetic  library;  MPFR,  the Multiple  Precision
+Floating-Point   Reliable   library;   MPFI,  the   Multiple   Precision
+Floating-Point Interval library.
 
   The package  makes use  of the  GNU Autotools  and it  is tested  on a
 GNU+Linux system.
+
+  NOTE The last  time the maintainer bothered to  update this paragraph,
+he had tested with: GMP version  6.0.0, MPFR version 3.1.2, MPFI version
+1.5.1.
 
 
 2. License
@@ -127,6 +137,18 @@ The latest version of this package can be downloaded from:
 the GNU Project software can be found here:
 
 			 <http://www.gnu.org/>
+
+The latest version of GMP is available from:
+
+			  <http://gmplib.org/>
+
+The latest version of MPFR is available from:
+
+			 <http://www.mpfr.org/>
+
+The latest version of MPFI is available from:
+
+		<http://gforge.inria.fr/projects/mpfi/>
 
 
 ### end of file

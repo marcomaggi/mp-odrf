@@ -1,11 +1,17 @@
 Subject: [announce] MP ODRF revision 0.1d0
 
-	    Multiple Precision One Dimensional Root Finding
+	    Multiple Precision One-Dimensional Root-Finding
 	    ===============================================
 
 
-This  package installs  a  C language  library  implementing a  template
-library.
+This  package   installs  a   C  language  library   reimplementing  the
+one-dimensional root-finding algorithms from  the GNU Scientific Library
+using the multiple precision numbers defined by MPFR and MPFI.
+
+  This  package  depends  upon  the following  packages:  GMP,  the  GNU
+Multiple  Precision arithmetic  library;  MPFR,  the Multiple  Precision
+Floating-Point   Reliable   library;   MPFI,  the   Multiple   Precision
+Floating-Point Interval library.
 
   The package  makes use  of the  GNU Autotools  and it  is tested  on a
 GNU+Linux  system.   It is  distributed  under  the GNU  General  Public

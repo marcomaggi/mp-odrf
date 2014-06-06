@@ -1,7 +1,7 @@
 \input texinfo.tex
 @c %**start of header
 @setfilename mp-odrf.info
-@settitle Multiple Precision One Dimensional Root Finding
+@settitle Multiple Precision One--Dimensional Root--Finding
 @c %**end of header
 
 @include version.texi
@@ -12,7 +12,7 @@
 @c Values.
 @c ------------------------------------------------------------
 
-@set TITLE                      Multiple Precision One Dimensional Root Finding
+@set TITLE                      Multiple Precision One--Dimensional Root--Finding
 
 @c To be used as @value{PACKAGE} whenever we need to include the full
 @c name of this package.
@@ -42,7 +42,9 @@
 
 @copying
 This document describes version @value{VERSION} of @value{PACKAGE}, a C
-language library implementing a template library.  The package is
+language library reimplementing the one--dimensional root--finding
+algorithms from the @gnu{} Scientific Library using the multiple
+precision numbers defined by @mpfr{} and @mpfi{}.  The package is
 distributed under the terms of the @gnu{} General Public License
 (@gpl{}).
 
@@ -101,6 +103,7 @@ entitled ``@gnu{} Free Documentation License''.
 @menu
 * overview::                    Overview of the package.
 * version::                     Version functions.
+* one root::                    One--dimensional root--finding.
 
 Appendices
 
@@ -124,7 +127,14 @@ Indexes
 
 
 This document describes version @value{VERSION} of @value{PACKAGE}, a C
-language library implementing a template library.
+language library reimplementing the one--dimensional root--finding
+algorithms from the @gnu{} Scientific Library using the multiple
+precision numbers defined by @mpfr{} and @mpfi{}.
+
+This package depends upon the following packages: @gmp{}, the @gnu{}
+Multiple Precision arithmetic library; @mpfr{}, the Multiple Precision
+Floating--Point Reliable library; @mpfi{}, the Multiple Precision
+Floating--Point Interval library.
 
 @value{PACKAGE} installs the single header file @file{mp-odrf.h}.  All
 the function names in the @api{} are prefixed with @code{mp_odrf_}; all
@@ -210,6 +220,1811 @@ Return an integer representing the library interface current age.
 @end deftypefun
 
 @c page
+@node one root
+@chapter One--dimensional root--finding
+
+
+@cindex root finding
+@cindex zero finding
+@cindex finding roots
+@cindex finding zeros
+@cindex roots
+@cindex solving a nonlinear equation
+@cindex nonlinear equation, solutions of
+
+This chapter describes routines for finding roots of arbitrary
+one-dimensional functions.  The library provides low level components
+for a variety of iterative solvers and convergence tests.  These can be
+combined by the user to achieve the desired solution, with full access
+to the intermediate steps of the iteration.  Each class of methods uses
+the same framework, so that we can switch between solvers at runtime
+without needing to recompile our program.  Each instance of a solver
+keeps track of its own state, allowing the solvers to be used in
+multi--threaded programs.
+
+
+@menu
+* one root overview::           Root Finding Overview.
+* one root caveats::            Root Finding Caveats.
+* one root init::               Initializing the Solver.
+* one root func::               Providing the function to solve.
+* one root bounds::             Search Bounds and Guesses.
+* one root iteration::          Root Finding Iteration.
+* one root stop::               Search Stopping Parameters.
+* one root bracketing::         Root Bracketing Algorithms.
+* one root polishing::          Root Finding Algorithms using Derivatives.
+* one root examples::           Root Finding Examples.
+* one root references::         Root Finding References and Further
+                                Reading.
+@end menu
+
+@c page
+@node one root overview
+@section Overview
+@cindex root finding, overview
+
+
+One--dimensional root finding algorithms can be divided into two
+classes: @dfn{root bracketing} and @dfn{root polishing}.  Algorithms
+which proceed by bracketing a root are guaranteed to converge.
+Bracketing algorithms begin with a bounded region known to contain a
+root.  The size of this bounded region is reduced, iteratively, until it
+encloses the root to a desired tolerance.  This provides a rigorous
+error estimate for the location of the root.
+
+The technique of @dfn{root polishing} attempts to improve an initial
+guess to the root.  These algorithms converge only if started ``close
+enough'' to a root, and sacrifice a rigorous error bound for speed.  By
+approximating the behavior of a function in the vicinity of a root they
+attempt to find a higher order improvement of an initial guess.  When
+the behavior of the function is compatible with the algorithm and a good
+initial guess is available a polishing algorithm can provide rapid
+convergence.
+
+In @value{PACKAGE} both types of algorithm are available in similar
+frameworks.  The user provides a high--level driver for the algorithms,
+and the library provides the individual functions necessary for each of
+the steps.  There are three main phases of the iteration.  The steps
+are:
+
+@enumerate
+@item
+Initialize solver state, @var{s}, for algorithm @var{T}.
+
+@item
+Update @var{s} using the iteration @var{T}.
+
+@item
+Test @var{s} for convergence, and repeat iteration if necessary.
+@end enumerate
+
+@noindent
+The state for bracketing solvers is held in a @code{mpgsl_root_fsolver}
+struct.  The updating procedure uses only function evaluations (not
+derivatives).  The state for root polishing solvers is held in a
+@code{mpgsl_root_fdfsolver} struct.  The updates require both the
+function and its derivative (hence the name @code{fdf}) to be supplied
+by the user.
+
+@c page
+@node one root caveats
+@section Caveats
+@cindex root finding, caveats
+
+
+Note that root finding functions can only search for one root at a time.
+When there are several roots in the search area, the first root to be
+found will be returned; however it is difficult to predict which of the
+roots this will be. @emph{In most cases, no error will be reported if
+you try to find a root in an area where there is more than one.}
+
+Care must be taken when a function may have a multiple root (such as
+@c{$f(x) = (x-x_0)^2$}
+@math{f(x) = (x-x_0)^2} or
+@c{$f(x) = (x-x_0)^3$}
+@math{f(x) = (x-x_0)^3}).
+It is not possible to use root--bracketing algorithms on
+even--multiplicity roots.  For these algorithms the initial interval must
+contain a zero-crossing, where the function is negative at one end of
+the interval and positive at the other end.  Roots with even--multiplicity
+do not cross zero, but only touch it instantaneously.  Algorithms based
+on root bracketing will still work for odd--multiplicity roots
+(e.g. cubic, quintic, @dots{}).
+Root polishing algorithms generally work with higher multiplicity roots,
+but at a reduced rate of convergence.  In these cases the @dfn{Steffenson
+algorithm} can be used to accelerate the convergence of multiple roots.
+
+While it is not absolutely required that @math{f} have a root within the
+search region, numerical root finding functions should not be used
+haphazardly to check for the @emph{existence} of roots.  There are better
+ways to do this.  Because it is easy to create situations where numerical
+root finders can fail, it is a bad idea to throw a root finder at a
+function you do not know much about.  In general it is best to examine
+the function visually by plotting before searching for a root.
+
+@c page
+@node one root init
+@section Initializing the Solver
+
+
+@subsubheading Function only solvers
+
+
+@deftypefun {mpgsl_root_fsolver *} mpgsl_root_fsolver_alloc (const mpgsl_root_fsolver_type * @var{T})
+This function returns a pointer to a newly allocated instance of a
+solver of type @var{T}.  For example, the following code creates an
+instance of a bisection solver:
+
+@example
+const mpgsl_root_fsolver_type * T
+  = mpgsl_root_fsolver_bisection;
+mpgsl_root_fsolver * s
+  = mpgsl_root_fsolver_alloc (T);
+@end example
+
+If there is insufficient memory to create the solver then the function
+returns a null pointer and the error handler is invoked with an error
+code of @code{GSL_ENOMEM}.
+@end deftypefun
+
+
+@deftypefun void mpgsl_root_fsolver_free (mpgsl_root_fsolver * @var{s})
+Free all the memory associated with the solver @var{s}.
+@end deftypefun
+
+
+@deftypefun int mpgsl_root_fsolver_set (mpgsl_root_fsolver * @var{s}, mpgsl_function * @var{f}, mpfr_t @var{x_lower}, mpfr_t @var{x_upper})
+This function initializes, or reinitializes, an existing solver @var{s}
+to use the function @var{f} and the initial search interval
+[@var{x_lower}, @var{x_upper}].
+@end deftypefun
+
+
+@deftypefun {const char *} mpgsl_root_fsolver_name (const mpgsl_root_fsolver * @var{s})
+Return a pointer to the name of the solver.  Example:
+
+@example
+printf("s is a '%s' solver\n",
+       mpgsl_root_fsolver_name(s));
+@end example
+
+@noindent
+would print something like @code{s is a 'bisection' solver}.
+@end deftypefun
+
+@c ------------------------------------------------------------
+
+@subsubheading Function and derivative solvers
+
+
+@deftypefun {mpgsl_root_fdfsolver *} mpgsl_root_fdfsolver_alloc (const mpgsl_root_fdfsolver_type * @var{T})
+This function returns a pointer to a newly allocated instance of a
+derivative-based solver of type @var{T}.  For example, the following
+code creates an instance of a Newton-Raphson solver:
+
+@example
+const mpgsl_root_fdfsolver_type * T
+  = mpgsl_root_fdfsolver_newton;
+mpgsl_root_fdfsolver * s
+  = mpgsl_root_fdfsolver_alloc (T);
+@end example
+
+If there is insufficient memory to create the solver then the function
+returns a null pointer and the error handler is invoked with an error
+code of @code{GSL_ENOMEM}.
+@end deftypefun
+
+
+@deftypefun void mpgsl_root_fdfsolver_free (mpgsl_root_fdfsolver * @var{s})
+Free all the memory associated with the solver @var{s}.
+@end deftypefun
+
+
+@deftypefun int mpgsl_root_fdfsolver_set (mpgsl_root_fdfsolver * @var{s}, mpgsl_function_fdf * @var{fdf}, mpfr_t @var{root})
+This function initializes, or reinitializes, an existing solver @var{s}
+to use the function and derivative @var{fdf} and the initial guess
+@var{root}.
+@end deftypefun
+
+
+@deftypefun {const char *} mpgsl_root_fsolver_name (const mpgsl_root_fsolver * @var{s})
+Return a pointer to the name of the solver.  Example:
+
+@example
+printf ("s is a '%s' solver\n",
+        mpgsl_root_fsolver_name (s));
+@end example
+
+@noindent
+would print something like @code{s is a 'bisection' solver}.
+@end deftypefun
+
+@c page
+@node one root func
+@section Providing the function to solve
+
+
+@cindex root finding, providing a function to solve
+
+
+We must provide a continuous function of one variable for the root
+finders to operate on, and, sometimes, its first derivative.  In order
+to allow for general parameters the functions are defined by the data
+types described in this section.
+
+
+@menu
+* one root func only::          Providing only the function.
+* one root func deriv::         Providing the function and its
+                                derivative.
+@end menu
+
+@c page
+@node one root func only
+@subsection Providing only the function
+
+
+@deftp {Data Type} mpgsl_function
+This data type defines a general math function with parameters.  Public
+fields description follows.
+
+@table @code
+@item int (* function) (mpfr_t @var{result}, mpfr_t @var{x}, void * @var{params})
+Pointer to a C function that should store in the (already initialised)
+number @var{result}, the value of the math function computed in @var{x},
+using the optional custom parameters referenced by @var{params}.  If
+successful the return value must be @code{GSL_SUCCESS}, else a different
+code must be returned.
+
+@item void * params
+A pointer to the parameters of the function.
+@end table
+@end deftp
+
+
+@defmac MPGSL_FN_EVAL (mpgsl_function * @var{F}, mpfr_t @var{result}, mpfr_t @var{x})
+Apply the math function described by @var{F} to the value @var{x} and
+store the result in @var{result}.  If successful returns
+@code{GSL_SUCCESS}, else a different code is returned.
+@end defmac
+
+
+@subsubheading Example
+
+Here is an example for the general quadratic function:
+@tex
+$$
+f(x) = a x^2 + b x + c
+$$
+@end tex
+@ifinfo
+
+@example
+f(x) = a x^2 + b x + c
+@end example
+
+@end ifinfo
+@noindent
+with @math{a = 3}, @math{b = 2}, @math{c = 1}.  The following code
+defines an @code{mpgsl_function} @code{F} which we could pass to a root
+finder, then ivokes it and prints the result.
+
+@smallexample
+#include <mpgsl.h>
+
+typedef struct @{
+  mpfr_t a, b, c;
+@} parameters_tag_t;
+typedef parameters_tag_t *      parameters_t;
+
+static void
+parameters_init (parameters_t params)
+@{
+  mpfr_init(params->a);
+  mpfr_init(params->b);
+  mpfr_init(params->c);
+
+  mpfr_set_d(params->a, 3.0, GMP_RNDN);
+  mpfr_set_d(params->b, 2.0, GMP_RNDN);
+  mpfr_set_d(params->c, 1.0, GMP_RNDN);
+@}
+static void
+parameters_final (parameters_t params)
+@{
+  mpfr_clear(params->a);
+  mpfr_clear(params->b);
+  mpfr_clear(params->c);
+@}
+
+static int
+function (mpfr_t result, mpfr_t x, void * p)
+@{
+  mpfr_t        tmp1, tmp2;
+  parameters_t  params = (parameters_t)p;
+
+  mpfr_init(tmp1);
+  mpfr_init(tmp2);
+  @{
+    /* (a * x + b) * x + c */
+    mpfr_mul(tmp1, params->a, x, GMP_RNDN);
+    mpfr_add(tmp2, tmp1, params->b, GMP_RNDN);
+    mpfr_mul(tmp1, tmp2, x, GMP_RNDN);
+    mpfr_add(result, tmp1, params->c, GMP_RNDN);
+  @}
+  mpfr_clear(tmp1);
+  mpfr_clear(tmp2);
+  return GSL_SUCCESS;
+@}
+
+int
+main (int argc MPGSL_UNUSED, char * argv [])
+@{
+  parameters_tag_t      params;
+  mpfr_t                result, x;
+  mpgsl_function        F = @{
+    .function = function, .params = &params
+  @};
+  double                y = 2.4;
+
+
+  parameters_init(&params);
+  mpfr_init(result);
+  mpfr_init(x);
+  @{
+    mpfr_set_d(x, 2.4, GMP_RNDN);
+    MPGSL_FN_EVAL(&F, result, x);
+    mpfr_fprintf(stderr,
+      "%s: the function value is: %20RNf, should be close to: %f\n",
+      argv[0], result, (3.0 * y * y + 2.0 * y + 1.0));
+  @}
+  mpfr_clear(x);
+  mpfr_clear(result);
+  parameters_final(&params);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c page
+@node one root func deriv
+@subsection Providing the function and its derivative
+
+
+@deftp {Data Type} mpgsl_function_fdf
+This data type defines a general math function with parameters and its
+first derivative.  Public fields description follows.
+
+@table @code
+@item int (* f) (mpfr_t @var{y}, mpfr_t @var{x}, void * @var{params})
+Pointer to a C function that should store in the (already initialised)
+number @var{y}, the value of the math function computed in @var{x},
+using the optional custom parameters referenced by @var{params}.  If
+successful the return value must be @code{GSL_SUCCESS}, else a different
+code must be returned.
+
+@item int (* df) (mpfr_t @var{dy}, mpfr_t @var{x}, void * @var{params})
+Pointer to a C function that should store in the (already initialised)
+number @var{dy}, the value of the math derivative computed in @var{x},
+using the optional custom parameters referenced by @var{params}.  If
+successful the return value must be @code{GSL_SUCCESS}, else a different
+code must be returned.
+
+@item int (* fdf) (mpfr_t @var{x}, void * @var{params}, mpfr_t @var{y}, mpfr_t @var{dy})
+Pointer to a C function that should store in the (already initialised)
+numbers @var{y} and @var{dy}, the values of the math function and its
+derivative (respectively) computed in @var{x}, using the optional custom
+parameters referenced by @var{params}.  If successful the return value
+must be @code{GSL_SUCCESS}, else a different code must be returned.
+
+@item void * params
+Pointer to the parameters of the function.
+@end table
+@end deftp
+
+
+@defmac MPGSL_FN_FDF_EVAL_F (mpgsl_function_fdf * @var{FDF}, mpfr_t @var{y}, mpfr_t @var{x})
+Apply the math function described by @var{FDF} to the value @var{x} and
+store the result in @var{y}.  If successful returns @code{GSL_SUCCESS},
+else a different code is returned.
+@end defmac
+
+
+@defmac MPGSL_FN_FDF_EVAL_DF (mpgsl_function_fdf * @var{FDF}, mpfr_t @var{dy}, mpfr_t @var{x})
+Apply the math derivative described by @var{FDF} to the value @var{x}
+and store the result in @var{dy}.  If successful returns
+@code{GSL_SUCCESS}, else a different code is returned.
+@end defmac
+
+
+@defmac MPGSL_FN_FDF_EVAL_F_DF (mpgsl_function_fdf * @var{FDF}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_t @var{dy})
+Apply the math function and its derivative described by @var{FDF} to the
+value @var{x} and store the result in @var{y} and @var{dy}.  If
+successful returns @code{GSL_SUCCESS}, else a different code is
+returned.
+@end defmac
+
+@c ------------------------------------------------------------
+
+@subsubheading Example
+
+Here is an example for the general quadratic function,
+@tex
+$$
+f(x) = a x^2 + b x + c
+$$
+@end tex
+@ifinfo
+
+@example
+f(x) = a x^2 + b x + c
+@end example
+
+@end ifinfo
+@noindent
+with @math{a = 3}, @math{b = 2}, @math{c = 1}, and its derivative:
+@tex
+$$
+f'(x) = 2 a x + b
+$$
+@end tex
+@ifinfo
+
+@example
+f'(x) = 2 a x + b
+@end example
+
+@end ifinfo
+The following code defines an @code{mpgsl_function_fdf} @code{FDF} which
+we could pass to a root finder, then ivokes it and prints the result.
+
+@smallexample
+#include <mpgsl.h>
+
+typedef struct @{
+  mpfr_t a, b, c;
+@} parameters_tag_t;
+typedef parameters_tag_t *      parameters_t;
+
+static void
+parameters_init (parameters_t params)
+@{
+  mpfr_init(params->a);
+  mpfr_init(params->b);
+  mpfr_init(params->c);
+
+  mpfr_set_d(params->a, 3.0, GMP_RNDN);
+  mpfr_set_d(params->b, 2.0, GMP_RNDN);
+  mpfr_set_d(params->c, 1.0, GMP_RNDN);
+@}
+static void
+parameters_final (parameters_t params)
+@{
+  mpfr_clear(params->a);
+  mpfr_clear(params->b);
+  mpfr_clear(params->c);
+@}
+
+static int
+function (mpfr_t y, mpfr_t x, void * p)
+@{
+  mpfr_t        tmp1, tmp2;
+  parameters_t  params = (parameters_t)p;
+
+  mpfr_init(tmp1);
+  mpfr_init(tmp2);
+  @{
+    /* (a * x + b) * x + c */
+    mpfr_mul(tmp1, params->a, x, GMP_RNDN);
+    mpfr_add(tmp2, tmp1, params->b, GMP_RNDN);
+    mpfr_mul(tmp1, tmp2, x, GMP_RNDN);
+    mpfr_add(y, tmp1, params->c, GMP_RNDN);
+  @}
+  mpfr_clear(tmp1);
+  mpfr_clear(tmp2);
+  return GSL_SUCCESS;
+@}
+static int
+derivative (mpfr_t dy, mpfr_t x, void * p)
+@{
+  mpfr_t        tmp1, tmp2;
+  parameters_t  params = (parameters_t)p;
+
+  mpfr_init(tmp1);
+  mpfr_init(tmp2);
+  @{
+    /* 2 * a * x + b */
+    mpfr_mul_d(tmp1, params->a, 2.0, GMP_RNDN);
+    mpfr_mul(tmp2, tmp1, x, GMP_RNDN);
+    mpfr_add(dy, tmp2, params->b, GMP_RNDN);
+  @}
+  mpfr_clear(tmp1);
+  mpfr_clear(tmp2);
+  return GSL_SUCCESS;
+@}
+static void
+function_and_derivative (mpfr_t x , void * p, mpfr_t y, mpfr_t dy)
+@{
+  int   e;
+  e = function(y, x, p);
+  if (GSL_SUCCESS != e) return e;
+  return derivative(dy, x, p);
+@}
+
+int
+main (int argc MPGSL_UNUSED, char * argv [])
+@{
+  parameters_tag_t      params;
+  mpfr_t                dy, y, x;
+  mpgsl_function_fdf    FDF = @{
+    .f          = function,
+    .df         = derivative,
+    .fdf        = function_and_derivative,
+    .params     = &params
+  @};
+  double                xd = 2.4;
+
+
+  parameters_init(&params);
+  mpfr_init(dy);
+  mpfr_init(y);
+  mpfr_init(x);
+  @{
+    mpfr_set_d(x, 2.4, GMP_RNDN);
+    MPGSL_FN_FDF_EVAL_F_DF(&FDF, x, y, dy);
+    mpfr_fprintf(stderr,
+                 "%s: y = %20RNf, dy = %20RNf, should be %f and %f\n",
+                 argv[0], y, dy,
+                 (3.0 * xd * xd + 2.0 * xd + 1.0),
+                 (2.0 * 3.0 * xd + 2.0));
+    MPGSL_FN_FDF_EVAL_F(&FDF, y, x);
+    mpfr_fprintf(stderr, "%s: y  = %20RNf\n", argv[0], y);
+    MPGSL_FN_FDF_EVAL_DF(&FDF, dy, x);
+    mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], dy);
+  @}
+  mpfr_clear(x);
+  mpfr_clear(y);
+  mpfr_clear(dy);
+  parameters_final(&params);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c ------------------------------------------------------------
+
+Here is another example for the function:
+@tex
+$$
+f(x) = exp(2 x)
+$$
+@end tex
+@ifinfo
+
+@example
+f(x) = exp(2 x)
+@end example
+
+@end ifinfo
+@noindent
+and its derivative:
+@tex
+$$
+f'(x) = 2 exp(2 x) = 2 f(x)
+$$
+@end tex
+@ifinfo
+
+@example
+f'(x) = 2 exp(2 x) = 2 f(x)
+@end example
+
+@end ifinfo
+in which we take advantage of the math function and derivative
+expressions to save some computation of intermediate results (see the C
+function @cfunc{function_and_derivative}).
+
+@smallexample
+#include <mpgsl.h>
+
+typedef struct @{
+  mpfr_t        ell;
+@} parameters_tag_t;
+typedef parameters_tag_t *      parameters_t;
+
+static void
+parameters_init (parameters_t params)
+@{
+  mpfr_init(params->ell);
+  mpfr_set_d(params->ell, 2.0, GMP_RNDN);
+@}
+static void
+parameters_final (parameters_t params)
+@{
+  mpfr_clear(params->ell);
+@}
+
+static int
+function (mpfr_t y, mpfr_t x, void * p)
+@{
+  mpfr_t        tmp;
+  parameters_t  params = (parameters_t)p;
+
+  mpfr_init(tmp);
+  @{
+    /* exp(ell * x) */
+    mpfr_mul(tmp, params->ell, x, GMP_RNDN);
+    mpfr_exp(y, tmp, GMP_RNDN);
+  @}
+  mpfr_clear(tmp);
+  return GSL_SUCCESS;
+@}
+static int
+derivative (mpfr_t dy, mpfr_t x, void * p)
+@{
+  mpfr_t        tmp1, tmp2;
+  parameters_t  params = (parameters_t)p;
+
+  mpfr_init(tmp1);
+  mpfr_init(tmp2);
+  @{
+    /* ell * exp(ell * x) */
+    mpfr_mul(tmp1, params->ell, x, GMP_RNDN);
+    mpfr_exp(tmp2, tmp1, GMP_RNDN);
+    mpfr_mul(dy, params->ell, tmp2, GMP_RNDN);
+  @}
+  mpfr_clear(tmp1);
+  mpfr_clear(tmp2);
+  return GSL_SUCCESS;
+@}
+static int
+function_and_derivative (mpfr_t x , void * p, mpfr_t y, mpfr_t dy)
+@{
+  mpfr_t        tmp;
+  parameters_t  params = (parameters_t)p;
+
+  mpfr_init(tmp);
+  @{
+    /*
+      y  = exp(ell * x)
+      dy = ell * exp(ell * x) = ell * y
+    */
+    mpfr_mul(tmp, params->ell, x, GMP_RNDN);
+    mpfr_exp(y, tmp, GMP_RNDN);
+    mpfr_mul(dy, params->ell, y, GMP_RNDN);
+  @}
+  mpfr_clear(tmp);
+  return GSL_SUCCESS;
+@}
+
+int
+main (int argc MPGSL_UNUSED, char * argv [])
+@{
+  parameters_tag_t      params;
+  mpfr_t                dy, y, x;
+  mpgsl_function_fdf    FDF = @{
+    .f          = function,
+    .df         = derivative,
+    .fdf        = function_and_derivative,
+    .params     = &params
+  @};
+  double                xd = 2.4;
+
+
+  parameters_init(&params);
+  mpfr_init(dy);
+  mpfr_init(y);
+  mpfr_init(x);
+  @{
+    mpfr_set_d(x, 2.4, GMP_RNDN);
+    MPGSL_FN_FDF_EVAL_F_DF(&FDF, x, y, dy);
+    mpfr_fprintf(stderr,
+                 "%s: y = %20RNf, dy = %20RNf, should be %f and %f\n",
+                 argv[0], y, dy,
+                 (exp(2.0 * xd)),
+                 (2.0 * exp(2.0 * xd)));
+    MPGSL_FN_FDF_EVAL_F(&FDF, y, x);
+    mpfr_fprintf(stderr, "%s: y  = %20RNf\n", argv[0], y);
+    MPGSL_FN_FDF_EVAL_DF(&FDF, dy, x);
+    mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], dy);
+  @}
+  mpfr_clear(x);
+  mpfr_clear(y);
+  mpfr_clear(dy);
+  parameters_final(&params);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c page
+@node one root bounds
+@section Search Bounds and Guesses
+
+@cindex root finding, search bounds
+@cindex root finding, initial guess
+
+We provide either search bounds or an initial guess; this section
+explains how search bounds and guesses work and how function arguments
+control them.
+
+A guess is simply an @math{x} value which is iterated until it is within
+the desired precision of a root.  It takes the form of an @code{mpfr_t}.
+
+Search bounds are the endpoints of an interval which is iterated until
+the length of the interval is smaller than the requested precision.  The
+interval is defined by two values, the lower limit and the upper limit.
+Whether the endpoints are intended to be included in the interval or not
+depends on the context in which the interval is used.
+
+@c page
+@node one root iteration
+@section Root Finding Iteration
+
+
+The following functions drive the iteration of each algorithm.  Each
+function performs one iteration to update the state of any solver of the
+corresponding type.  The same functions work for all solvers so that
+different methods can be substituted at runtime without modifications to
+the code.
+
+
+@deftypefun int mpgsl_root_fsolver_iterate (mpgsl_root_fsolver * @var{s})
+@deftypefunx int mpgsl_root_fdfsolver_iterate (mpgsl_root_fdfsolver * @var{s})
+These functions perform a single iteration of the solver @var{s}.  If the
+iteration encounters an unexpected problem then an error code will be
+returned:
+
+@table @code
+@item GSL_EBADFUNC
+The iteration encountered a singular point where the function or its
+derivative evaluated to @code{Inf} or @code{NaN}.
+
+@item GSL_EZERODIV
+The derivative of the function vanished at the iteration point,
+preventing the algorithm from continuing without a division by zero.
+@end table
+@end deftypefun
+
+
+The solver maintains a current best estimate of the root at all times.
+The bracketing solvers also keep track of the current best interval
+bounding the root.  This information can be accessed with the following
+auxiliary functions.
+
+
+@deftypefun mpfr_ptr mpgsl_root_fsolver_root (const mpgsl_root_fsolver * @var{s})
+@deftypefunx mpfr_ptr mpgsl_root_fdfsolver_root (const mpgsl_root_fdfsolver * @var{s})
+These functions return the current estimate of the root for the solver
+@var{s}.  The referenced number is part of solver's state, so it must
+@strong{not} be modified.
+@end deftypefun
+
+
+@deftypefun mpfr_ptr mpgsl_root_fsolver_x_lower (const mpgsl_root_fsolver * @var{s})
+@deftypefunx mpfr_ptr mpgsl_root_fsolver_x_upper (const mpgsl_root_fsolver * @var{s})
+These functions return the current bracketing interval for the solver
+@var{s}.  The referenced numbers are part of solver's state, so they must
+@strong{not} be modified.
+@end deftypefun
+
+@c page
+@node one root stop
+@section Search Stopping Parameters
+
+
+@cindex root finding, stopping parameters
+
+
+A root finding procedure should stop when one of the following conditions is
+true:
+
+@itemize @bullet
+@item
+A root has been found to within the user--specified precision.
+
+@item
+A user--specified maximum number of iterations has been reached.
+
+@item
+An error has occurred.
+@end itemize
+
+@noindent
+The handling of these conditions is under user control.  The functions
+below allow the user to test the precision of the current result in
+several standard ways.
+
+
+@deftypefun int mpgsl_root_test_interval (mpfr_t @var{x_lower}, mpfr_t @var{x_upper}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
+This function tests for the convergence of the interval [@var{x_lower},
+@var{x_upper}] with absolute error @var{epsabs} and relative error
+@var{epsrel}.  The test returns @code{GSL_SUCCESS} if the following
+condition is achieved:
+@tex
+$$
+|a - b| < \hbox{\it epsabs} + \hbox{\it epsrel\/}\, \min(|a|,|b|)
+$$
+@end tex
+@ifinfo
+
+@example
+|a - b| < epsabs + epsrel min(|a|,|b|)
+@end example
+
+@end ifinfo
+@noindent
+when the interval @math{x = [a,b]} does not include the origin.  If the
+interval includes the origin then @math{\min(|a|,|b|)} is replaced by
+zero (which is the minimum value of @math{|x|} over the interval).  This
+ensures that the relative error is accurately estimated for roots close
+to the origin.
+
+This condition on the interval also implies that any estimate of the
+root @math{r} in the interval satisfies the same condition with respect
+to the true root @math{r^*}:
+@tex
+$$
+|r - r^*| < \hbox{\it epsabs} + \hbox{\it epsrel\/}\, r^*
+$$
+@end tex
+@ifinfo
+
+@example
+|r - r^*| < epsabs + epsrel r^*
+@end example
+
+@end ifinfo
+@noindent
+assuming that the true root @math{r^*} is contained within the interval.
+@end deftypefun
+
+
+@deftypefun int mpgsl_root_test_delta (mpfr_t @var{x1}, mpfr_t @var{x0}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
+Test for the convergence of the sequence @dots{}, @var{x0}, @var{x1}
+with absolute error @var{epsabs} and relative error @var{epsrel}.  The
+test returns @code{GSL_SUCCESS} if the following condition is achieved:
+@tex
+$$
+|x_1 - x_0| < \hbox{\it epsabs} + \hbox{\it epsrel\/}\, |x_1|
+$$
+@end tex
+@ifinfo
+
+@example
+|x_1 - x_0| < epsabs + epsrel |x_1|
+@end example
+
+@end ifinfo
+@noindent
+and returns @code{GSL_CONTINUE} otherwise.
+@end deftypefun
+
+
+@deftypefun int mpgsl_root_test_residual (mpfr_t @var{f}, mpfr_t @var{epsabs})
+Test the residual value @var{f} against the absolute error bound
+@var{epsabs}.  The test returns @code{GSL_SUCCESS} if the following
+condition is achieved:
+@tex
+$$
+|f| < \hbox{\it epsabs}
+$$
+@end tex
+@ifinfo
+
+@example
+|f| < epsabs
+@end example
+
+@end ifinfo
+@noindent
+and returns @code{GSL_CONTINUE} otherwise.  This criterion is suitable
+for situations where the precise location of the root, @math{x}, is
+unimportant provided a value can be found where the residual,
+@math{|f(x)|}, is small enough.
+@end deftypefun
+
+@c page
+@node one root bracketing
+@section Root Bracketing Algorithms
+
+
+The root bracketing algorithms described in this section require an
+initial interval which is guaranteed to contain a root---if @math{a} and
+@math{b} are the endpoints of the interval then @math{f(a)} must differ
+in sign from @math{f(b)}.  This ensures that the function crosses zero
+at least once in the interval.  If a valid initial interval is used then
+these algorithm cannot fail, provided the function is well-behaved.
+
+Note that a bracketing algorithm cannot find roots of even degree, since
+these do not cross the @math{x}-axis.
+
+
+@defvr {Solver} mpgsl_root_fsolver_bisection
+
+@cindex bisection algorithm for finding roots
+@cindex root finding, bisection algorithm
+
+The @dfn{bisection algorithm} is the simplest method of bracketing the
+roots of a function.   It is the slowest algorithm provided by
+the library, with linear convergence.
+
+On each iteration, the interval is bisected and the value of the
+function at the midpoint is calculated.  The sign of this value is used
+to determine which half of the interval does not contain a root.  That
+half is discarded to give a new, smaller interval containing the root.
+This procedure can be continued indefinitely until the interval is
+sufficiently small.
+
+At any time the current estimate of the root is taken as the midpoint of
+the interval.
+
+@comment eps file "roots-bisection.eps"
+@comment @tex
+@comment @sp 1
+@comment @center @image{roots-bisection,3.4in}
+
+@comment @quotation
+@comment Four iterations of bisection, where @math{a_n} is @math{n}th position of
+@comment the beginning of the interval and @math{b_n} is the @math{n}th position
+@comment of the end.  The midpoint of each interval is also indicated.
+@comment @end quotation
+@comment @end tex
+@end defvr
+
+
+@defvr {Solver} mpgsl_root_fsolver_falsepos
+@cindex false position algorithm for finding roots
+@cindex root finding, false position algorithm
+
+The @dfn{false position algorithm} is a method of finding roots based on
+linear interpolation.  Its convergence is linear, but it is usually
+faster than bisection.
+
+On each iteration a line is drawn between the endpoints @math{(a,f(a))}
+and @math{(b,f(b))} and the point where this line crosses the
+@math{x}-axis taken as a ``midpoint''.  The value of the function at
+this point is calculated and its sign is used to determine which side of
+the interval does not contain a root.  That side is discarded to give a
+new, smaller interval containing the root.  This procedure can be
+continued indefinitely until the interval is sufficiently small.
+
+The best estimate of the root is taken from the linear interpolation of
+the interval on the current iteration.
+
+@comment eps file "roots-false-position.eps"
+@comment @tex
+@comment @image{roots-false-position,4in}
+@comment @quotation
+@comment Several iterations of false position, where @math{a_n} is @math{n}th
+@comment position of the beginning of the interval and @math{b_n} is the
+@comment @math{n}th position of the end.
+@comment @end quotation
+@comment @end tex
+@end defvr
+
+
+@defvr {Solver} mpgsl_root_fsolver_brent
+@cindex Brent's method for finding roots
+@cindex root finding, Brent's method
+
+The @dfn{Brent-Dekker method} (referred to here as @dfn{Brent's method})
+combines an interpolation strategy with the bisection algorithm.  This
+produces a fast algorithm which is still robust.
+
+On each iteration Brent's method approximates the function using an
+interpolating curve.  On the first iteration this is a linear
+interpolation of the two endpoints.  For subsequent iterations the
+algorithm uses an inverse quadratic fit to the last three points, for
+higher accuracy.  The intercept of the interpolating curve with the
+@math{x}-axis is taken as a guess for the root.  If it lies within the
+bounds of the current interval then the interpolating point is accepted,
+and used to generate a smaller interval.  If the interpolating point is
+not accepted then the algorithm falls back to an ordinary bisection
+step.
+
+The best estimate of the root is taken from the most recent
+interpolation or bisection.
+@end defvr
+
+
+@c page
+@node one root polishing
+@section Root Finding Algorithms using Derivatives
+
+
+The root polishing algorithms described in this section require an
+initial guess for the location of the root.  There is no absolute
+guarantee of convergence; the function must be suitable for this
+technique and the initial guess must be sufficiently close to the root
+for it to work.  When these conditions are satisfied then convergence is
+quadratic.
+
+These algorithms make use of both the function and its derivative.
+
+
+@deffn {Derivative Solver} mpgsl_root_fdfsolver_newton
+@cindex Newton's method for finding roots
+@cindex root finding, Newton's method
+
+Newton's Method is the standard root--polishing algorithm.  The
+algorithm begins with an initial guess for the location of the root.  On
+each iteration, a line tangent to the function @math{f} is drawn at that
+position.  The point where this line crosses the @math{x}-axis becomes
+the new guess.  The iteration is defined by the following sequence:
+@tex
+$$
+x_{i+1} = x_i - {f(x_i) \over f'(x_i)}
+$$
+@end tex
+@ifinfo
+
+@example
+x_@{i+1@} = x_i - f(x_i)/f'(x_i)
+@end example
+
+@end ifinfo
+@noindent
+Newton's method converges quadratically for single roots, and linearly
+for multiple roots.
+
+@comment eps file "roots-newtons-method.eps"
+@comment @tex
+@comment @sp 1
+@comment @center @image{roots-newtons-method,3.4in}
+
+@comment @quotation
+@comment Several iterations of Newton's Method, where @math{g_n} is the
+@comment @math{n}th guess.
+@comment @end quotation
+@comment @end tex
+@end deffn
+
+
+@deffn {Derivative Solver} mpgsl_root_fdfsolver_secant
+@cindex secant method for finding roots
+@cindex root finding, secant method
+
+The @dfn{secant method} is a simplified version of Newton's method which does
+not require the computation of the derivative on every step.
+
+On its first iteration the algorithm begins with Newton's method, using
+the derivative to compute a first step:
+@tex
+$$
+x_1 = x_0 - {f(x_0) \over f'(x_0)}
+$$
+@end tex
+@ifinfo
+
+@example
+x_1 = x_0 - f(x_0)/f'(x_0)
+@end example
+
+@end ifinfo
+@noindent
+Subsequent iterations avoid the evaluation of the derivative by
+replacing it with a numerical estimate, the slope of the line through
+the previous two points:
+@tex
+$$
+x_{i+1} = x_i - {f(x_i) \over f'_{est}}
+ ~\hbox{where}~
+ f'_{est} =  {f(x_{i}) - f(x_{i-1}) \over x_i - x_{i-1}}
+$$
+@end tex
+@ifinfo
+
+@example
+x_@{i+1@} = x_i f(x_i) / f'_@{est@} where
+ f'_@{est@} = (f(x_i) - f(x_@{i-1@})/(x_i - x_@{i-1@})
+@end example
+
+@end ifinfo
+@noindent
+When the derivative does not change significantly in the vicinity of the
+root the secant method gives a useful saving.  Asymptotically the secant
+method is faster than Newton's method whenever the cost of evaluating
+the derivative is more than @math{0.44} times the cost of evaluating the
+function itself.  As with all methods of computing a numerical
+derivative the estimate can suffer from cancellation errors if the
+separation of the points becomes too small.
+
+On single roots, the method has a convergence of order @math{(1 + \sqrt
+5)/2} (approximately @math{1.62}).  It converges linearly for multiple
+roots.
+
+@comment eps file "roots-secant-method.eps"
+@comment @tex
+@comment @tex
+@comment \input epsf
+@comment \medskip
+@comment \centerline{\epsfxsize=5in\epsfbox{roots-secant-method.eps}}
+@comment @end tex
+@comment @quotation
+@comment Several iterations of Secant Method, where @math{g_n} is the @math{n}th
+@comment guess.
+@comment @end quotation
+@comment @end tex
+@end deffn
+
+
+@deffn {Derivative Solver} mpgsl_root_fdfsolver_steffenson
+@cindex Steffenson's method for finding roots
+@cindex root finding, Steffenson's method
+
+The @dfn{Steffenson Method} provides the fastest convergence of all the
+routines.  It combines the basic Newton algorithm with an Aitken
+``delta--squared'' acceleration.  If the Newton iterates are @math{x_i}
+then the acceleration procedure generates a new sequence @math{R_i}:
+@tex
+$$
+R_i = x_i - {(x_{i+1} - x_i)^2 \over (x_{i+2} - 2 x_{i+1} + x_i)}
+$$
+@end tex
+@ifinfo
+
+@example
+R_i = x_i - (x_@{i+1@} - x_i)^2 / (x_@{i+2@} - 2 x_@{i+1@} + x_@{i@})
+@end example
+
+@end ifinfo
+@noindent
+which converges faster than the original sequence under reasonable
+conditions.  The new sequence requires three terms before it can produce
+its first value so the method returns accelerated values on the second
+and subsequent iterations.  On the first iteration it returns the
+ordinary Newton estimate.  The Newton iterate is also returned if the
+denominator of the acceleration term ever becomes zero.
+
+As with all acceleration procedures this method can become unstable if
+the function is not well--behaved.
+@end deffn
+
+@c page
+@node one root examples
+@section Examples
+
+
+@menu
+Root bracketing algorithms
+
+* one root examples bisection:: Bisection algorithm with interval
+                                stop criterion.
+* one root examples falsepos::  Falsepos algorithm with delta
+                                stop criterion.
+* one root examples brent::     Brent algorithm with residual
+                                stop criterion.
+
+Root polishing algorithms
+
+* one root examples newton::    Newton algorithm with delta
+                                stop criterion.
+* one root examples secant::    Secant algorithm with delta
+                                stop criterion.
+* one root examples steffenson:: Steffenson algorithm with residual
+                                stop criterion.
+@end menu
+
+@c page
+@node one root examples bisection
+@subsection Bisection algorithm with interval stop criterion
+
+
+@smallexample
+#include <stdlib.h>
+#include <mpgsl.h>
+
+static int
+sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_sin(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+
+int
+main (void)
+@{
+  mpgsl_root_fsolver * solver;
+  mpfr_t                x_lower, x_upper;
+  mpfr_t                epsabs, epsrel;
+  int                   e, iteration_count = 0;
+  mpgsl_function        F = @{ .function = sine_function,
+                              .params   = NULL @};
+
+  printf("*** One-dimensional root finding:\n\
+\tbisection algorithm,\n\
+\tinterval stop criterion.\n");
+
+  solver = mpgsl_root_fsolver_alloc(mpgsl_root_fsolver_bisection);
+  if (NULL == solver) @{
+    perror("error initialising solver");
+    exit(EXIT_FAILURE);
+  @}
+
+  mpfr_init(x_lower);
+  mpfr_init(x_upper);
+  mpfr_init(epsabs);
+  mpfr_init(epsrel);
+  @{
+    mpfr_set_d(x_lower, -1.0, GMP_RNDN);
+    mpfr_set_d(x_upper, +0.5, GMP_RNDN);
+    mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
+    mpfr_set_d(epsrel,  1e-3, GMP_RNDN);
+
+    e = mpgsl_root_fsolver_set(solver, &F, x_lower, x_upper);
+    if (GSL_SUCCESS != e) @{
+      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+      goto end;
+    @}
+
+    mpfr_printf("iteration %2d: [%-26Rf, %-26Rf]\n",
+                iteration_count++,
+                mpgsl_root_fsolver_x_lower(solver),
+                mpgsl_root_fsolver_x_upper(solver));
+
+    do @{
+      e = mpgsl_root_fsolver_iterate(solver);
+      if (GSL_SUCCESS != e) @{
+        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+
+      mpfr_printf("iteration %2d: [%-26Rf, %-26Rf]\n",
+                  iteration_count++,
+                  mpgsl_root_fsolver_x_lower(solver),
+                  mpgsl_root_fsolver_x_upper(solver));
+
+      e = mpgsl_root_test_interval(mpgsl_root_fsolver_x_lower(solver),
+                                   mpgsl_root_fsolver_x_upper(solver),
+                                   epsabs, epsrel);
+      switch (e) @{
+      case GSL_SUCCESS:
+        goto solved;
+      case GSL_CONTINUE:
+        break;
+      default:
+        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+    @} while (GSL_CONTINUE == e);
+  solved:
+    mpfr_printf("result = %Rf\n", mpgsl_root_fsolver_root(solver));
+  @}
+ end:
+  mpfr_clear(epsrel);
+  mpfr_clear(epsabs);
+  mpfr_clear(x_upper);
+  mpfr_clear(x_lower);
+  mpgsl_root_fsolver_free(solver);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c page
+@node one root examples falsepos
+@subsection Falsepos algorithm with delta stop criterion
+
+
+@smallexample
+#include <stdlib.h>
+#include <mpgsl.h>
+
+static int
+sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_sin(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+
+int
+main (void)
+@{
+  mpgsl_root_fsolver *  solver;
+  mpfr_t                x_lower, x_upper;
+  mpfr_t                epsabs, epsrel, x1;
+  int                   e, iteration_count = 0;
+  mpgsl_function        F = @{ .function = sine_function,
+                              .params   = NULL @};
+
+  printf("*** One-dimensional root finding:\n\
+\tfalsepos algorithm,\n\
+\tdelta stop criterion.\n");
+
+  solver = mpgsl_root_fsolver_alloc(mpgsl_root_fsolver_falsepos);
+  if (NULL == solver) @{
+    perror("error initialising solver");
+    exit(EXIT_FAILURE);
+  @}
+
+  mpfr_init(x_lower);
+  mpfr_init(x_upper);
+  mpfr_init(epsabs);
+  mpfr_init(epsrel);
+  mpfr_init(x1);
+  @{
+    mpfr_set_d(x_lower, -1.0, GMP_RNDN);
+    mpfr_set_d(x_upper, +0.5, GMP_RNDN);
+    mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
+    mpfr_set_d(epsrel,  1e-3, GMP_RNDN);
+
+    mpfr_set(x1, x_lower, GMP_RNDN);
+
+    e = mpgsl_root_fsolver_set(solver, &F, x_lower, x_upper);
+    if (GSL_SUCCESS != e) @{
+      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+      goto end;
+    @}
+
+    mpfr_printf("iteration %2d: x = %-28Rf\n",
+                iteration_count++, mpgsl_root_fsolver_root(solver));
+
+    do @{
+      e = mpgsl_root_fsolver_iterate(solver);
+      if (GSL_SUCCESS != e) @{
+        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+
+      mpfr_printf("iteration %2d: x = %-28Rf\n",
+                  iteration_count++, mpgsl_root_fsolver_root(solver));
+
+      e = mpgsl_root_test_delta(x1, mpgsl_root_fsolver_root(solver),
+                                epsabs, epsrel);
+      switch (e) @{
+      case GSL_SUCCESS:
+        goto solved;
+      case GSL_CONTINUE:
+        mpfr_set(x1, mpgsl_root_fsolver_root(solver), GMP_RNDN);
+        break;
+      default:
+        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+    @} while (GSL_CONTINUE == e);
+  solved:
+    mpfr_printf("result = %Rf\n", mpgsl_root_fsolver_root(solver));
+  @}
+ end:
+  mpfr_clear(epsrel);
+  mpfr_clear(epsabs);
+  mpfr_clear(x_upper);
+  mpfr_clear(x_lower);
+  mpgsl_root_fsolver_free(solver);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c page
+@node one root examples brent
+@subsection Brent algorithm with residual stop criterion
+
+
+@smallexample
+#include <stdlib.h>
+#include <mpgsl.h>
+
+static int
+sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_sin(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+
+int
+main (void)
+@{
+  mpgsl_root_fsolver *  solver;
+  mpfr_t                x_lower, x_upper;
+  mpfr_t                epsabs, residual;
+  int                   e, iteration_count = 0;
+  mpgsl_function        F = @{ .function = sine_function,
+                              .params   = NULL @};
+
+  printf("*** One-dimensional root finding:\n\
+\tbrent algorithm,\n\
+\tresidual stop criterion.\n");
+
+  solver = mpgsl_root_fsolver_alloc(mpgsl_root_fsolver_brent);
+  if (NULL == solver) @{
+    perror("error initialising solver");
+    exit(EXIT_FAILURE);
+  @}
+
+  mpfr_init(x_lower);
+  mpfr_init(x_upper);
+  mpfr_init(epsabs);
+  mpfr_init(residual);
+  @{
+    mpfr_set_d(x_lower, -1.0, GMP_RNDN);
+    mpfr_set_d(x_upper, +0.5, GMP_RNDN);
+    mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
+
+    e = mpgsl_root_fsolver_set(solver, &F, x_lower, x_upper);
+    if (GSL_SUCCESS != e) @{
+      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+      goto end;
+    @}
+
+    MPGSL_FN_EVAL(&F, residual, mpgsl_root_fsolver_root(solver));
+    mpfr_printf("iteration %2d: x = %-30Rf, f(x) = %-30Rf\n",
+                iteration_count++,
+                mpgsl_root_fsolver_root(solver),
+                residual);
+
+    do @{
+      e = mpgsl_root_fsolver_iterate(solver);
+      if (GSL_SUCCESS != e) @{
+        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+
+      MPGSL_FN_EVAL(&F, residual, mpgsl_root_fsolver_root(solver));
+      mpfr_printf("iteration %2d: x = %-30Rf, f(x) = %-30Rf\n",
+                  iteration_count++,
+                  mpgsl_root_fsolver_root(solver),
+                  residual);
+
+      e = mpgsl_root_test_residual(residual, epsabs);
+      switch (e) @{
+      case GSL_SUCCESS:
+        goto solved;
+      case GSL_CONTINUE:
+        break;
+      default:
+        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+    @} while (GSL_CONTINUE == e);
+  solved:
+    mpfr_printf("result = %Rf\n", mpgsl_root_fsolver_root(solver));
+  @}
+ end:
+  mpfr_clear(residual);
+  mpfr_clear(epsabs);
+  mpfr_clear(x_upper);
+  mpfr_clear(x_lower);
+  mpgsl_root_fsolver_free(solver);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c page
+@node one root examples newton
+@subsection Newton algorithm with delta stop criterion
+
+
+@smallexample
+#include <stdlib.h>
+#include <mpgsl.h>
+
+static int
+sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_sin(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+static int
+cosine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_cos(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+static int
+sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
+                          mpfr_t y, mpfr_t dy)
+@{
+  mpfr_sin(y,  x, GMP_RNDN);
+  mpfr_cos(dy, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+
+int
+main (void)
+@{
+  mpgsl_root_fdfsolver *solver;
+  mpfr_t                epsabs, epsrel, x1;
+  int                   e, iteration_count = 0;
+  mpgsl_function_fdf    F = @{ .f      = sine_function,
+                              .df     = cosine_function,
+                              .fdf    = sine_and_cosine_function,
+                              .params = NULL @};
+
+  printf("*** One-dimensional root finding:\n\
+\tnewton algorithm,\n\
+\tdelta stop criterion.\n");
+
+  solver = mpgsl_root_fdfsolver_alloc(mpgsl_root_fdfsolver_newton);
+  if (NULL == solver) @{
+    perror("error initialising solver");
+    exit(EXIT_FAILURE);
+  @}
+
+  mpfr_init(epsabs);
+  mpfr_init(epsrel);
+  mpfr_init(x1);
+  @{
+    mpfr_set_d(x1,     -1.0, GMP_RNDN);
+    mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
+    mpfr_set_d(epsrel,  1e-6, GMP_RNDN);
+
+    e = mpgsl_root_fdfsolver_set(solver, &F, x1);
+    if (GSL_SUCCESS != e) @{
+      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+      goto end;
+    @}
+
+    mpfr_printf("iteration %2d: x = %-32Rf\n",
+                iteration_count++,
+                mpgsl_root_fdfsolver_root(solver));
+
+    do @{
+      e = mpgsl_root_fdfsolver_iterate(solver);
+      if (GSL_SUCCESS != e) @{
+        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+
+      mpfr_printf("iteration %2d: x = %-32Rf\n",
+                  iteration_count++,
+                  mpgsl_root_fdfsolver_root(solver));
+
+      e = mpgsl_root_test_delta(x1, mpgsl_root_fdfsolver_root(solver),
+                                epsabs, epsrel);
+      switch (e) @{
+      case GSL_SUCCESS:
+        goto solved;
+      case GSL_CONTINUE:
+        mpfr_set(x1, mpgsl_root_fdfsolver_root(solver), GMP_RNDN);
+        break;
+      default:
+        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+    @} while (GSL_CONTINUE == e);
+  solved:
+    mpfr_printf("result = %Rf\n", mpgsl_root_fdfsolver_root(solver));
+  @}
+ end:
+  mpfr_clear(epsabs);
+  mpfr_clear(epsrel);
+  mpfr_clear(x1);
+  mpgsl_root_fdfsolver_free(solver);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c page
+@node one root examples secant
+@subsection Secant algorithm with delta stop criterion
+
+
+@smallexample
+#include <stdlib.h>
+#include <mpgsl.h>
+
+static int
+sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_sin(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+static int
+cosine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_cos(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+static int
+sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
+                          mpfr_t y, mpfr_t dy)
+@{
+  mpfr_sin(y,  x, GMP_RNDN);
+  mpfr_cos(dy, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+
+int
+main (void)
+@{
+  mpgsl_root_fdfsolver *solver;
+  mpfr_t                epsabs, epsrel, x1;
+  int                   e, iteration_count = 0;
+  mpgsl_function_fdf    F = @{ .f      = sine_function,
+                              .df     = cosine_function,
+                              .fdf    = sine_and_cosine_function,
+                              .params = NULL @};
+
+  printf("*** One-dimensional root finding:\n\
+\tsecant algorithm,\n\
+\tdelta stop criterion.\n");
+
+  solver = mpgsl_root_fdfsolver_alloc(mpgsl_root_fdfsolver_secant);
+  if (NULL == solver) @{
+    perror("error initialising solver");
+    exit(EXIT_FAILURE);
+  @}
+
+  mpfr_init(epsabs);
+  mpfr_init(epsrel);
+  mpfr_init(x1);
+  @{
+    mpfr_set_d(x1,     -1.0, GMP_RNDN);
+    mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
+    mpfr_set_d(epsrel,  1e-6, GMP_RNDN);
+
+    e = mpgsl_root_fdfsolver_set(solver, &F, x1);
+    if (GSL_SUCCESS != e) @{
+      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+      goto end;
+    @}
+
+    mpfr_printf("iteration %2d: x = %-32Rf\n",
+                iteration_count++,
+                mpgsl_root_fdfsolver_root(solver));
+
+    do @{
+      e = mpgsl_root_fdfsolver_iterate(solver);
+      if (GSL_SUCCESS != e) @{
+        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+
+      mpfr_printf("iteration %2d: x = %-32Rf\n",
+                  iteration_count++,
+                  mpgsl_root_fdfsolver_root(solver));
+
+      e = mpgsl_root_test_delta(x1, mpgsl_root_fdfsolver_root(solver),
+                                epsabs, epsrel);
+      switch (e) @{
+      case GSL_SUCCESS:
+        goto solved;
+      case GSL_CONTINUE:
+        mpfr_set(x1, mpgsl_root_fdfsolver_root(solver), GMP_RNDN);
+        break;
+      default:
+        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+    @} while (GSL_CONTINUE == e);
+  solved:
+    mpfr_printf("result = %Rf\n", mpgsl_root_fdfsolver_root(solver));
+  @}
+ end:
+  mpfr_clear(epsabs);
+  mpfr_clear(epsrel);
+  mpfr_clear(x1);
+  mpgsl_root_fdfsolver_free(solver);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c page
+@node one root examples steffenson
+@subsection Steffenson algorithm with residual stop criterion
+
+
+@smallexample
+#include <stdlib.h>
+#include <mpgsl.h>
+
+static int
+sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_sin(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+static int
+cosine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+@{
+  mpfr_cos(y, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+static int
+sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
+                          mpfr_t y, mpfr_t dy)
+@{
+  mpfr_sin(y,  x, GMP_RNDN);
+  mpfr_cos(dy, x, GMP_RNDN);
+  return GSL_SUCCESS;
+@}
+
+int
+main (void)
+@{
+  mpgsl_root_fdfsolver *solver;
+  mpfr_t                guess, epsabs, residual;
+  int                   e, iteration_count = 0;
+  mpgsl_function_fdf    F = @{ .f      = sine_function,
+                              .df     = cosine_function,
+                              .fdf    = sine_and_cosine_function,
+                              .params = NULL @};
+
+  printf("*** One-dimensional root finding:\n\
+\tsteffenson algorithm,\n\
+\tresidual stop criterion.\n");
+
+  solver = mpgsl_root_fdfsolver_alloc(mpgsl_root_fdfsolver_steffenson);
+  if (NULL == solver) @{
+    perror("error initialising solver");
+    exit(EXIT_FAILURE);
+  @}
+
+  mpfr_init(guess);
+  mpfr_init(epsabs);
+  mpfr_init(residual);
+  @{
+    mpfr_set_d(guess, -1.0, GMP_RNDN);
+    mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
+
+    e = mpgsl_root_fdfsolver_set(solver, &F, guess);
+    if (GSL_SUCCESS != e) @{
+      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+      goto end;
+    @}
+
+    MPGSL_FN_FDF_EVAL_F(&F, residual,
+                        mpgsl_root_fdfsolver_root(solver));
+    mpfr_printf("iteration %2d: x = %-32Rf, f(x) = %-32Rf\n",
+                iteration_count++,
+                mpgsl_root_fdfsolver_root(solver),
+                residual);
+
+    do @{
+      e = mpgsl_root_fdfsolver_iterate(solver);
+      if (GSL_SUCCESS != e) @{
+        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+
+      MPGSL_FN_FDF_EVAL_F(&F, residual,
+                          mpgsl_root_fdfsolver_root(solver));
+      mpfr_printf("iteration %2d: x = %-32Rf, f(x) = %-32Rf\n",
+                  iteration_count++,
+                  mpgsl_root_fdfsolver_root(solver),
+                  residual);
+
+      e = mpgsl_root_test_residual(residual, epsabs);
+      switch (e) @{
+      case GSL_SUCCESS:
+        goto solved;
+      case GSL_CONTINUE:
+        break;
+      default:
+        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        goto end;
+      @}
+    @} while (GSL_CONTINUE == e);
+  solved:
+    mpfr_printf("result = %Rf\n", mpgsl_root_fdfsolver_root(solver));
+  @}
+ end:
+  mpfr_clear(residual);
+  mpfr_clear(epsabs);
+  mpfr_clear(guess);
+  mpgsl_root_fdfsolver_free(solver);
+  exit(EXIT_SUCCESS);
+@}
+@end smallexample
+
+@c page
+@node one root references
+@section References and Further Reading
+
+
+For information on the Brent-Dekker algorithm see the following two
+papers:
+
+@itemize @asis
+@item
+R. P. Brent, ``An algorithm with guaranteed convergence for finding a
+zero of a function'', @cite{Computer Journal}, 14 (1971) 422--425
+
+@item
+J. C. P. Bus and T. J. Dekker, ``Two Efficient Algorithms with Guaranteed
+Convergence for Finding a Zero of a Function'', @cite{ACM Transactions of
+Mathematical Software}, Vol.@: 1 No.@: 4 (1975) 330--345
+@end itemize
+
+
+
+@c page
 @c ------------------------------------------------------------
 @c Appendices.
 @c ------------------------------------------------------------
@@ -225,6 +2040,18 @@ Return an integer representing the library interface current age.
 The latest version of this package can be downloaded from:
 
 @center @url{http://github.com/marcomaggi/@value{PACKAGE_NICKNAME}/}
+
+The latest version of @gmp{} is available from:
+
+@center @url{http://gmplib.org/}
+
+The latest version of @mpfr{} is available from:
+
+@center @url{http://www.mpfr.org/}
+
+The latest version of @mpfi{} is available from:
+
+@center @url{http://gforge.inria.fr/projects/mpfi/}
 
 @c page
 @node references
