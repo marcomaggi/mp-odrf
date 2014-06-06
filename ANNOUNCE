@@ -1,0 +1,31 @@
+Subject: [announce] MP ODRF revision 0.1d0
+
+	    Multiple Precision One Dimensional Root Finding
+	    ===============================================
+
+
+This  package installs  a  C language  library  implementing a  template
+library.
+
+  The package  makes use  of the  GNU Autotools  and it  is tested  on a
+GNU+Linux  system.   It is  distributed  under  the GNU  General  Public
+License version 3.0.
+
+  The latest version of this package can be downloaded from:
+
+		<http://github.com/marcomaggi/mp-odrf/>
+
+
+Notes for revision 0.1d0
+------------------------
+
+* This is a template project.
+
+
+### end of file
+# Local Variables:
+# coding: utf-8-unix
+# mode: text
+# fill-column: 72
+# paragraph-start: "*"
+# End:
