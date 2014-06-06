@@ -41,7 +41,11 @@ libmpodrf_la_SOURCES	= \
 	src/mp-odrf-public-api.c			\
 	src/mp-odrf-root-bracketing-bisection.c		\
 	src/mp-odrf-root-bracketing-falsepos.c		\
-	src/mp-odrf-root-bracketing-brent.c
+	src/mp-odrf-root-bracketing-brent.c		\
+	src/mp-odrf-root-polishing-newton.c
+
+#src/mp-odrf-root-polishing-secant.c
+#src/mp-odrf-root-polishing-steffenson.c
 
 #page
 #### tests

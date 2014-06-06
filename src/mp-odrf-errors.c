@@ -60,9 +60,17 @@ const mp_odrf_error_t	mp_odrf_error_endpoints_do_not_straddle = {
   .code		= MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE,
   .description	= "endpoints do not straddle y=0"
 };
-const mp_odrf_error_t	mp_odrf_function_value_is_not_finite = {
+const mp_odrf_error_t	mp_odrf_error_function_value_is_not_finite = {
   .code		= MP_ODRF_ERROR_FUNCTION_VALUE_IS_NOT_FINITE,
   .description	= "function value is not finite"
+};
+const mp_odrf_error_t	mp_odrf_error_derivative_is_zero = {
+  .code		= MP_ODRF_ERROR_DERIVATIVE_IS_ZERO,
+  .description	= "derivative is zero"
+};
+const mp_odrf_error_t	mp_odrf_error_function_or_derivative_value_invalid = {
+  .code		= MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID,
+  .description	= "function or derivative value is not finite or not a number"
 };
 
 /* end of file */

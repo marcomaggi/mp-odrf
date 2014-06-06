@@ -48,7 +48,7 @@
     if (MP_ODRF_ERROR == RETVAL) {				\
       ;								\
     } else if (! mpfr_number_p(Y)) {				\
-      *EE	= &mp_odrf_function_value_is_not_finite;	\
+      *EE	= &mp_odrf_error_function_value_is_not_finite;	\
       RETVAL	= MP_ODRF_ERROR;				\
     }								\
   } while (0);
@@ -71,7 +71,9 @@ mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_relative_tolerance_is_n
 mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_absolute_tolerance_is_negative;
 mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_lower_bound_larger_than_upper_bound;
 mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_endpoints_do_not_straddle;
-mp_odrf_private_decl const mp_odrf_error_t mp_odrf_function_value_is_not_finite;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_function_value_is_not_finite;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_derivative_is_zero;
+mp_odrf_private_decl const mp_odrf_error_t mp_odrf_error_function_or_derivative_value_invalid;
 
 
 /** --------------------------------------------------------------------
