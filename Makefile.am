@@ -35,6 +35,7 @@ include_HEADERS		= src/mp-odrf.h
 lib_LTLIBRARIES		= libmpodrf.la
 libmpodrf_la_LDFLAGS	= -version-info $(mp_odrf_CURRENT):$(mp_odrf_REVISION):$(mp_odrf_AGE)
 libmpodrf_la_SOURCES	= \
+	src/mp-odrf-internals.h		\
 	src/mp-odrf-version.c
 
 #page
