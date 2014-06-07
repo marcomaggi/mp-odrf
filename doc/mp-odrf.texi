@@ -44,9 +44,8 @@
 This document describes version @value{VERSION} of @value{PACKAGE}, a C
 language library reimplementing the one--dimensional root--finding
 algorithms from the @gnu{} Scientific Library using the multiple
-precision numbers defined by @mpfr{} and @mpfi{}.  The package is
-distributed under the terms of the @gnu{} General Public License
-(@gpl{}).
+precision numbers defined by @mpfr{}.  The package is distributed under
+the terms of the @gnu{} General Public License (@gpl{}).
 
 @noindent
 Copyright @copyright{} @value{COPYRIGHT_YEARS} by @value{AUTHOR} @value{AUTHOR_EMAIL}@*
@@ -131,12 +130,11 @@ Indexes
 This document describes version @value{VERSION} of @value{PACKAGE}, a C
 language library reimplementing the one--dimensional root--finding
 algorithms from the @gnu{} Scientific Library (@gsl{}) using the
-multiple precision numbers defined by @mpfr{} and @mpfi{}.
+multiple precision numbers defined by @mpfr{}.
 
 This package depends upon the following packages: @gmp{}, the @gnu{}
 Multiple Precision arithmetic library; @mpfr{}, the Multiple Precision
-Floating--Point Reliable library; @mpfi{}, the Multiple Precision
-Floating--Point Interval library.
+Floating--Point Reliable library.
 
 Both the code and the documentation are reworked from the original
 @gsl{} distribution; however this package does not depend on the @gsl{}
@@ -184,7 +182,7 @@ m4_include(meta/autoconf/pkg.m4)
 @end example
 
 @item
-Search for the @gmp{}, @mpfr{} and @mpfi{} libraries:
+Search for the @gmp{} and @mpfr{} libraries:
 
 @example
 AC_CHECK_HEADERS([gmp.h],,
@@ -196,11 +194,6 @@ AC_CHECK_HEADERS([mpfr.h],,
   [AC_MSG_FAILURE([missing mpfr.h header],[2])])
 AC_CHECK_LIB([mpfr],[mpfr_init],,
   [AC_MSG_FAILURE([missing or unusable MPFR library],[2])])
-
-AC_CHECK_HEADERS([mpfi.h],,
-  [AC_MSG_FAILURE([missing mpfi.h header],[2])])
-AC_CHECK_LIB([mpfi],[mpfi_init],,
-  [AC_MSG_FAILURE([missing or unusable MPFI library],[2])])
 @end example
 
 @item
@@ -2083,10 +2076,6 @@ The latest version of @gmp{} is available from:
 The latest version of @mpfr{} is available from:
 
 @center @url{http://www.mpfr.org/}
-
-The latest version of @mpfi{} is available from:
-
-@center @url{http://gforge.inria.fr/projects/mpfi/}
 
 @c page
 @node references

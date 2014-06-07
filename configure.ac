@@ -84,14 +84,6 @@ AC_CHECK_HEADERS([mpfr.h],,
 AC_CHECK_LIB([mpfr],[mpfr_init],,
   [AC_MSG_FAILURE([missing or unusable MPFR library],[2])])
 
-dnl AC_CHECK_HEADERS([mpc.h],,[AC_MSG_FAILURE([missing mpc.h header],[2])])
-dnl AC_CHECK_LIB([mpc],[mpc_clear],,[AC_MSG_FAILURE([missing or unusable MPC library],[2])])
-
-AC_CHECK_HEADERS([mpfi.h],,
-  [AC_MSG_FAILURE([missing mpfi.h header],[2])])
-AC_CHECK_LIB([mpfi],[mpfi_init],,
-  [AC_MSG_FAILURE([missing or unusable MPFI library],[2])])
-
 AC_CACHE_SAVE
 
 dnl page
