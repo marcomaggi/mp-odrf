@@ -37,9 +37,9 @@
 typedef struct {
   const mp_odrf_mpfr_root_fdfsolver_driver_t *	driver;
   double				initial_guess;
-  mp_odrf_mpfr_function_fun_t *		function;
-  mp_odrf_mpfr_function_fun_t *		derivative;
-  mp_odrf_mpfr_function_deriv_fun_t *	function_and_derivative;
+  mp_odrf_mpfr_wrapped_f_t *		function;
+  mp_odrf_mpfr_wrapped_f_t *		derivative;
+  mp_odrf_mpfr_wrapped_fdf_t *		function_and_derivative;
   const char *				description;
 } polish_meta_data_tag_t;
 typedef polish_meta_data_tag_t *	polish_meta_data_t;
@@ -66,17 +66,17 @@ static void test_with_residual_criterion (polish_meta_data_t data);
 /* Trigonometric sine function wrapped to  be used by the root polishing
    algorithm.  This is the target function;  we know that the root is at
    zero. */
-static mp_odrf_mpfr_function_fun_t		sine_function;
+static mp_odrf_mpfr_wrapped_f_t		sine_function;
 
 /* Trigonometric  cosine  function  wrapped  to  be  used  by  the  root
    polishing  algorithm.    This  is   the  derivative  of   the  target
    function. */
-static mp_odrf_mpfr_function_fun_t		cosine_function;
+static mp_odrf_mpfr_wrapped_f_t		cosine_function;
 
 /* Trigonometric sine  and cosine  functions wrapped to  be used  by the
    root  polishing algorithm.   This function  computes both  the target
    function and its derivative. */
-static mp_odrf_mpfr_function_deriv_fun_t	sine_and_cosine_function;
+static mp_odrf_mpfr_wrapped_fdf_t	sine_and_cosine_function;
 
 
 /** --------------------------------------------------------------------

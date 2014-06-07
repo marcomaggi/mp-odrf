@@ -37,7 +37,7 @@ typedef struct {
   const mp_odrf_mpfr_root_fsolver_driver_t *	driver;
   double			x_lower;
   double			x_upper;
-  mp_odrf_mpfr_function_fun_t *	function;
+  mp_odrf_mpfr_wrapped_f_t *	function;
   const char *			description;
 } bracket_meta_data_tag_t;
 typedef bracket_meta_data_tag_t *	bracket_meta_data_t;
@@ -63,8 +63,8 @@ static void test_with_residual_criterion (bracket_meta_data_t data);
 /* Trigonometric sine and minus  trigonometric sine functions wrapped to
    be used by the root bracketing  algorithms.  We know that the root is
    at zero. */
-static mp_odrf_mpfr_function_fun_t	sine_function;
-static mp_odrf_mpfr_function_fun_t	minus_sine_function;
+static mp_odrf_mpfr_wrapped_f_t	sine_function;
+static mp_odrf_mpfr_wrapped_f_t	minus_sine_function;
 
 
 /** --------------------------------------------------------------------

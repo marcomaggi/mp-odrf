@@ -136,22 +136,22 @@ typedef struct {
  ** ----------------------------------------------------------------- */
 
 typedef mp_odrf_operation_code_t \
-  mp_odrf_mpfr_function_fun_t       (mpfr_ptr y, mpfr_ptr x, void * params,
+  mp_odrf_mpfr_wrapped_f_t       (mpfr_ptr y, mpfr_ptr x, void * params,
 				     const mp_odrf_error_t ** E);
 typedef mp_odrf_operation_code_t \
-  mp_odrf_mpfr_function_deriv_fun_t (mpfr_ptr x, void * params, mpfr_ptr y, mpfr_ptr dy,
+  mp_odrf_mpfr_wrapped_fdf_t (mpfr_ptr x, void * params, mpfr_ptr y, mpfr_ptr dy,
 				     const mp_odrf_error_t ** E);
 
 typedef struct {
-  mp_odrf_mpfr_function_fun_t *		function;
+  mp_odrf_mpfr_wrapped_f_t *		function;
   void *				params;
 } mp_odrf_mpfr_function_t;
 
 typedef struct {
-  mp_odrf_mpfr_function_fun_t *		f;
-  mp_odrf_mpfr_function_fun_t *		df;
-  mp_odrf_mpfr_function_deriv_fun_t *	fdf;
-  void *				params;
+  mp_odrf_mpfr_wrapped_f_t *	f;
+  mp_odrf_mpfr_wrapped_f_t *	df;
+  mp_odrf_mpfr_wrapped_fdf_t *	fdf;
+  void *			params;
 } mp_odrf_mpfr_function_fdf_t;
 
 /* Given  the target  math function  wrapped in  a structure  F of  type
@@ -204,7 +204,7 @@ typedef struct {
 
 
 /** --------------------------------------------------------------------
- ** MPFR type definitions.
+ ** MPFR type definitions: algorithm drivers.
  ** ----------------------------------------------------------------- */
 
 /* Prototype of function used to compute  the value of the user supplied
@@ -249,18 +249,6 @@ typedef struct {
   mp_odrf_mpfr_roots_f_fun_t *		iterate;
 } mp_odrf_mpfr_root_fsolver_driver_t;
 
-/* Root-finding computation  state using a bracketing  algorithm.  Every
-   time we want to solver a root-finding problem we allocate an instance
-   of this struct. */
-typedef struct {
-  const mp_odrf_mpfr_root_fsolver_driver_t * driver;
-  mp_odrf_mpfr_function_t *		function;
-  mpfr_t				root;
-  mpfr_t				x_lower;
-  mpfr_t				x_upper;
-  void *				driver_state;
-} mp_odrf_mpfr_root_fsolver_t;
-
 /* Driver  for  root  polishing   algorithms.   The  library  statically
    allocates  and  initalises  an  instance  of  this  struct  for  each
    implemented algorithm. */
@@ -273,19 +261,9 @@ typedef struct {
   mp_odrf_mpfr_roots_fdf_fun_t *	iterate;
 } mp_odrf_mpfr_root_fdfsolver_driver_t;
 
-/* Root-finding computation  state using  a polishing  algorithm.  Every
-   time we want to solver a root-finding problem we allocate an instance
-   of this struct. */
-typedef struct {
-  const mp_odrf_mpfr_root_fdfsolver_driver_t * driver;
-  mp_odrf_mpfr_function_fdf_t *		fdf;
-  mpfr_t				root;
-  void *				driver_state;
-} mp_odrf_mpfr_root_fdfsolver_t;
-
 
 /** --------------------------------------------------------------------
- ** MPFR functions: predefined root-finding algorithms.
+ ** MPFR global values: predefined root-finding algorithms.
  ** ----------------------------------------------------------------- */
 
 /* Root bracketing algorithms. */
@@ -302,6 +280,18 @@ mp_odrf_decl const mp_odrf_mpfr_root_fdfsolver_driver_t  * mp_odrf_mpfr_root_fdf
 /** --------------------------------------------------------------------
  ** MPFR functions: root bracketing problems.
  ** ----------------------------------------------------------------- */
+
+/* Root-finding computation  state using a bracketing  algorithm.  Every
+   time we want to solver a root-finding problem we allocate an instance
+   of this struct. */
+typedef struct {
+  const mp_odrf_mpfr_root_fsolver_driver_t * driver;
+  mp_odrf_mpfr_function_t *		function;
+  mpfr_t				root;
+  mpfr_t				x_lower;
+  mpfr_t				x_upper;
+  void *				driver_state;
+} mp_odrf_mpfr_root_fsolver_t;
 
 /* Allocate and initialise a new root bracketing state struct to use the
    selected algorithm driver. */
@@ -335,6 +325,16 @@ mp_odrf_decl mpfr_ptr mp_odrf_mpfr_root_fsolver_x_upper (const mp_odrf_mpfr_root
 /** --------------------------------------------------------------------
  ** MPFR functions: root polishing problems.
  ** ----------------------------------------------------------------- */
+
+/* Root-finding computation  state using  a polishing  algorithm.  Every
+   time we want to solver a root-finding problem we allocate an instance
+   of this struct. */
+typedef struct {
+  const mp_odrf_mpfr_root_fdfsolver_driver_t * driver;
+  mp_odrf_mpfr_function_fdf_t *		fdf;
+  mpfr_t				root;
+  void *				driver_state;
+} mp_odrf_mpfr_root_fdfsolver_t;
 
 /* Allocate and initialise a new root  polishing state struct to use the
    selected algorithm driver. */
