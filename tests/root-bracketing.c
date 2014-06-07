@@ -61,7 +61,7 @@ static void test_with_delta_criterion    (bracket_meta_data_t data);
 static void test_with_residual_criterion (bracket_meta_data_t data);
 
 /* Trigonometric sine and minus  trigonometric sine functions wrapped to
-   be used by the root bracketing  algorithms.  We know that the root it
+   be used by the root bracketing  algorithms.  We know that the root is
    at zero. */
 static mp_odrf_mpfr_function_fun_t	sine_function;
 static mp_odrf_mpfr_function_fun_t	minus_sine_function;
@@ -77,7 +77,7 @@ main (void)
   bracket_meta_data_tag_t	data;
   const char *			s;
 
-  s = getenv("verbose");
+  s = getenv("VERBOSE");
   if (s && 0 == strcmp("yes", s))
     VERBOSE=1;
 
@@ -120,7 +120,8 @@ subdoit (bracket_meta_data_t data)
 /* Solve  the problem  using the  preset bracketing  algorithm and  math
    function.  The  argument DATA  must be  already initialised  with the
    selected  algorithm  driver  and  the selected  math  function;  this
-   function will reuse it for multiple initial brackets. */
+   function will  reuse it  for multiple  initial brackets  and multiple
+   convergence tests. */
 {
   data->x_lower		= -1.0;
   data->x_upper		= +1.0;

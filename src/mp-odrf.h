@@ -132,7 +132,7 @@ typedef struct {
 
 
 /** --------------------------------------------------------------------
- ** MPFR type definitions.
+ ** MPFR type definitions: wrapped math functions.
  ** ----------------------------------------------------------------- */
 
 typedef mp_odrf_operation_code_t \
@@ -154,12 +154,58 @@ typedef struct {
   void *				params;
 } mp_odrf_mpfr_function_fdf_t;
 
-#define MP_ODRF_MPFR_FN_EVAL(F,Y,X,EE)			(((F)->function)(Y, X, (F)->params, EE))
-#define MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF,Y,X,EE)		(((FDF)->f)     (Y, X, (FDF)->params, EE))
-#define MP_ODRF_MPFR_FN_FDF_EVAL_DF(FDF,DY,X,EE)	(((FDF)->df)    (DY, X, (FDF)->params, EE))
-#define MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF,X,Y,DY,EE)	(((FDF)->fdf)   (X, (FDF)->params, Y, DY, EE))
+/* Given  the target  math function  wrapped in  a structure  F of  type
+   "mp_odrf_mpfr_function_t":   compute  its   value  in   the  abscissa
+   "mpfr_ptr" X and store the result in the ordinate "mpfr_ptr" Y.  Both
+   X and Y must have been already initialised.
 
-/* ------------------------------------------------------------------ */
+   If  an  error  occurs  computing   the  function:  a  suitable  error
+   descriptor is stored  in the variable referenced by  EE; the argument
+   EE is of type "const mp_odrf_error_t **" */
+#define MP_ODRF_MPFR_FN_EVAL(F,Y,X,EE)			\
+  (((F)->function)((Y), (X), (F)->params, (EE)))
+
+/* Given  the target  math  function  and its  derivative  wrapped in  a
+   structure  FDF  of  type "mp_odrf_mpfr_function_fdf_t":  compute  the
+   function's value in the abscissa "mpfr_ptr" X and store the result in
+   the  ordinate "mpfr_ptr"  Y.  Both  X and  Y must  have been  already
+   initialised.
+
+   If an  error occurs:  a suitable  error descriptor  is stored  in the
+   variable  referenced  by  EE;  the  argument EE  is  of  type  "const
+   mp_odrf_error_t **" */
+#define MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF,Y,X,EE)		\
+  (((FDF)->f) ((Y), (X), (FDF)->params, (EE)))
+
+/* Given  the target  math  function  and its  derivative  wrapped in  a
+   structure  FDF  of  type "mp_odrf_mpfr_function_fdf_t":  compute  the
+   derivetive's value in the abscissa  "mpfr_ptr" X and store the result
+   in  the  "mpfr_ptr"  Y.   Both  X   and  Y  must  have  been  already
+   initialised.
+
+   If an  error occurs:  a suitable  error descriptor  is stored  in the
+   variable  referenced  by  EE;  the  argument EE  is  of  type  "const
+   mp_odrf_error_t **" */
+#define MP_ODRF_MPFR_FN_FDF_EVAL_DF(FDF,DY,X,EE)	\
+  (((FDF)->df) ((DY), (X), (FDF)->params, (EE)))
+
+/* Given  the target  math  function  and its  derivative  wrapped in  a
+   structure FDF of type "mp_odrf_mpfr_function_fdf_t": compute both the
+   function's  value   and  the  derivative's  value   in  the  abscissa
+   "mpfr_ptr" X; store  the function's value in  the ordinate "mpfr_ptr"
+   Y; store the  derivative's value in the ordinate  "mpfr_ptr" DY.  All
+   of X, Y and DY must have been already initialised.
+
+   If an  error occurs:  a suitable  error descriptor  is stored  in the
+   variable  referenced  by  EE;  the  argument EE  is  of  type  "const
+   mp_odrf_error_t **" */
+#define MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF,X,Y,DY,EE)	\
+  (((FDF)->fdf)((X), (FDF)->params, (Y), (DY), (EE)))
+
+
+/** --------------------------------------------------------------------
+ ** MPFR type definitions.
+ ** ----------------------------------------------------------------- */
 
 /* Prototype of function used to compute  the value of the user supplied
    math  function to  be searched  for roots.   It is  used by  the root

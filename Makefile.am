@@ -42,19 +42,17 @@ libmpodrf_la_SOURCES	= \
 	src/mp-odrf-root-bracketing-bisection.c		\
 	src/mp-odrf-root-bracketing-falsepos.c		\
 	src/mp-odrf-root-bracketing-brent.c		\
-	src/mp-odrf-root-polishing-newton.c
-
-#src/mp-odrf-root-polishing-secant.c
-#src/mp-odrf-root-polishing-steffenson.c
+	src/mp-odrf-root-polishing-newton.c		\
+	src/mp-odrf-root-polishing-secant.c		\
+	src/mp-odrf-root-polishing-steffenson.c
 
 #page
 #### tests
 
 check_PROGRAMS	= \
 	tests/version		\
-	tests/root-bracketing
-
-#	tests/root-polishing
+	tests/root-bracketing	\
+	tests/root-polishing
 
 TESTS				= $(check_PROGRAMS)
 
@@ -70,9 +68,9 @@ tests_root_bracketing_CPPFLAGS	= $(mp_odrf_tests_cppflags)
 tests_root_bracketing_LDADD	= $(mp_odrf_tests_ldadd)
 tests_root_bracketing_SOURCES	= tests/root-bracketing.c $(mp_odrf_tests_sources)
 
-# tests_root_polishing_CPPFLAGS	= $(mp_odrf_tests_cppflags)
-# tests_root_polishing_LDADD	= $(mp_odrf_tests_ldadd)
-# tests_root_polishing_SOURCES	= tests/root-polishing.c $(mp_odrf_tests_sources)
+tests_root_polishing_CPPFLAGS	= $(mp_odrf_tests_cppflags)
+tests_root_polishing_LDADD	= $(mp_odrf_tests_ldadd)
+tests_root_polishing_SOURCES	= tests/root-polishing.c $(mp_odrf_tests_sources)
 
 ## --------------------------------------------------------------------
 
