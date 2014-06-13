@@ -45,7 +45,6 @@ extern "C" {
 #include <math.h>
 #include <float.h>
 #include <mpfr.h>
-#include <mpfi.h>
 
 
 /** --------------------------------------------------------------------
