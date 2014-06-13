@@ -1110,7 +1110,7 @@ We provide either search bounds or an initial guess; this section
 explains how search bounds and guesses work and how function arguments
 control them.
 
-A guess is simply an @math{x} value which is iterated until it is within
+A guess is simply an @math{X} value which is iterated until it is within
 the desired precision of a root.  It takes the form of an @code{mpfr_t}.
 
 Search bounds are the endpoints of an interval which is iterated until
