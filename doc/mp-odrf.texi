@@ -272,7 +272,6 @@ without needing to recompile our program.  Each instance of a solver
 keeps track of its own state, allowing the solvers to be used in
 multi--threaded programs.
 
-
 @menu
 * one root overview::           Root Finding Overview.
 * one root caveats::            Root Finding Caveats.
@@ -295,16 +294,17 @@ multi--threaded programs.
 
 
 One--dimensional root finding algorithms can be divided into two
-classes: @dfn{root bracketing} and @dfn{root polishing}.  Algorithms
-which proceed by bracketing a root are guaranteed to converge.
-Bracketing algorithms begin with a bounded region known to contain a
-root.  The size of this bounded region is reduced, iteratively, until it
-encloses the root to a desired tolerance.  This provides a rigorous
-error estimate for the location of the root.
+classes: @dfn{root bracketing} and @dfn{root polishing}.
 
-The technique of @dfn{root polishing} attempts to improve an initial
-guess to the root.  These algorithms converge only if started ``close
-enough'' to a root, and sacrifice a rigorous error bound for speed.  By
+Algorithms which proceed by bracketing a root are guaranteed to
+converge.  Bracketing algorithms begin with a bounded region known to
+contain a root.  The size of this bounded region is reduced,
+iteratively, until it encloses the root to a desired tolerance.  This
+provides a rigorous error estimate for the location of the root.
+
+The technique of root polishing attempts to improve an initial guess to
+the root.  These algorithms converge only if started ``close enough'' to
+a root, and sacrifice a rigorous error bound for speed.  By
 approximating the behavior of a function in the vicinity of a root they
 attempt to find a higher order improvement of an initial guess.  When
 the behavior of the function is compatible with the algorithm and a good
@@ -319,21 +319,21 @@ are:
 
 @enumerate
 @item
-Initialize solver state, @var{s}, for algorithm @var{T}.
+Initialize solver state @var{S} for algorithm @var{T}.
 
 @item
-Update @var{s} using the iteration @var{T}.
+Update @var{S} using the iteration @var{T}.
 
 @item
-Test @var{s} for convergence, and repeat iteration if necessary.
+Test @var{S} for convergence, and repeat iteration if necessary.
 @end enumerate
 
 @noindent
 The state for bracketing solvers is held in a
-@code{mp_odrf_mpfr_root_fsolver_t} struct.  The updating procedure uses
+@code{mp_odrf_mpfr_root_fsolver_t} struct; the updating procedure uses
 only function evaluations (not derivatives).  The state for root
 polishing solvers is held in a @code{mp_odrf_mpfr_root_fdfsolver_t}
-struct.  The updates require both the function and its derivative (hence
+struct; the updates require both the function and its derivative (hence
 the name @code{fdf}) to be supplied by the user.
 
 @c page
@@ -345,7 +345,7 @@ the name @code{fdf}) to be supplied by the user.
 Note that root finding functions can only search for one root at a time.
 When there are several roots in the search area, the first root to be
 found will be returned; however it is difficult to predict which of the
-roots this will be. @emph{In most cases, no error will be reported if
+roots this will be.  @emph{In most cases, no error will be reported if
 you try to find a root in an area where there is more than one.}
 
 Care must be taken when a function may have a multiple root (such as
@@ -380,16 +380,16 @@ the function visually by plotting before searching for a root.
 @subsubheading Function only solvers
 
 
-@deftypefun {mpgsl_root_fsolver *} mpgsl_root_fsolver_alloc (const mpgsl_root_fsolver_type * @var{T})
+@deftypefun {mp_odrf_mpfr_root_fsolver *} mp_odrf_mpfr_root_fsolver_alloc (const mp_odrf_mpfr_root_fsolver_type * @var{T})
 This function returns a pointer to a newly allocated instance of a
 solver of type @var{T}.  For example, the following code creates an
 instance of a bisection solver:
 
 @example
-const mpgsl_root_fsolver_type * T
-  = mpgsl_root_fsolver_bisection;
-mpgsl_root_fsolver * s
-  = mpgsl_root_fsolver_alloc (T);
+const mp_odrf_mpfr_root_fsolver_type * T
+  = mp_odrf_mpfr_root_fsolver_bisection;
+mp_odrf_mpfr_root_fsolver * s
+  = mp_odrf_mpfr_root_fsolver_alloc (T);
 @end example
 
 If there is insufficient memory to create the solver then the function
@@ -398,24 +398,24 @@ code of @code{GSL_ENOMEM}.
 @end deftypefun
 
 
-@deftypefun void mpgsl_root_fsolver_free (mpgsl_root_fsolver * @var{s})
+@deftypefun void mp_odrf_mpfr_root_fsolver_free (mp_odrf_mpfr_root_fsolver * @var{s})
 Free all the memory associated with the solver @var{s}.
 @end deftypefun
 
 
-@deftypefun int mpgsl_root_fsolver_set (mpgsl_root_fsolver * @var{s}, mpgsl_function * @var{f}, mpfr_t @var{x_lower}, mpfr_t @var{x_upper})
+@deftypefun int mp_odrf_mpfr_root_fsolver_set (mp_odrf_mpfr_root_fsolver * @var{s}, mp_odrf_mpfr_function * @var{f}, mpfr_t @var{x_lower}, mpfr_t @var{x_upper})
 This function initializes, or reinitializes, an existing solver @var{s}
 to use the function @var{f} and the initial search interval
 [@var{x_lower}, @var{x_upper}].
 @end deftypefun
 
 
-@deftypefun {const char *} mpgsl_root_fsolver_name (const mpgsl_root_fsolver * @var{s})
+@deftypefun {const char *} mp_odrf_mpfr_root_fsolver_name (const mp_odrf_mpfr_root_fsolver * @var{s})
 Return a pointer to the name of the solver.  Example:
 
 @example
 printf("s is a '%s' solver\n",
-       mpgsl_root_fsolver_name(s));
+       mp_odrf_mpfr_root_fsolver_name(s));
 @end example
 
 @noindent
@@ -427,16 +427,16 @@ would print something like @code{s is a 'bisection' solver}.
 @subsubheading Function and derivative solvers
 
 
-@deftypefun {mpgsl_root_fdfsolver *} mpgsl_root_fdfsolver_alloc (const mpgsl_root_fdfsolver_type * @var{T})
+@deftypefun {mp_odrf_mpfr_root_fdfsolver *} mp_odrf_mpfr_root_fdfsolver_alloc (const mp_odrf_mpfr_root_fdfsolver_type * @var{T})
 This function returns a pointer to a newly allocated instance of a
 derivative-based solver of type @var{T}.  For example, the following
 code creates an instance of a Newton-Raphson solver:
 
 @example
-const mpgsl_root_fdfsolver_type * T
-  = mpgsl_root_fdfsolver_newton;
-mpgsl_root_fdfsolver * s
-  = mpgsl_root_fdfsolver_alloc (T);
+const mp_odrf_mpfr_root_fdfsolver_type * T
+  = mp_odrf_mpfr_root_fdfsolver_newton;
+mp_odrf_mpfr_root_fdfsolver * s
+  = mp_odrf_mpfr_root_fdfsolver_alloc (T);
 @end example
 
 If there is insufficient memory to create the solver then the function
@@ -445,24 +445,24 @@ code of @code{GSL_ENOMEM}.
 @end deftypefun
 
 
-@deftypefun void mpgsl_root_fdfsolver_free (mpgsl_root_fdfsolver * @var{s})
+@deftypefun void mp_odrf_mpfr_root_fdfsolver_free (mp_odrf_mpfr_root_fdfsolver * @var{s})
 Free all the memory associated with the solver @var{s}.
 @end deftypefun
 
 
-@deftypefun int mpgsl_root_fdfsolver_set (mpgsl_root_fdfsolver * @var{s}, mpgsl_function_fdf * @var{fdf}, mpfr_t @var{root})
+@deftypefun int mp_odrf_mpfr_root_fdfsolver_set (mp_odrf_mpfr_root_fdfsolver * @var{s}, mp_odrf_mpfr_function_fdf * @var{fdf}, mpfr_t @var{root})
 This function initializes, or reinitializes, an existing solver @var{s}
 to use the function and derivative @var{fdf} and the initial guess
 @var{root}.
 @end deftypefun
 
 
-@deftypefun {const char *} mpgsl_root_fsolver_name (const mpgsl_root_fsolver * @var{s})
+@deftypefun {const char *} mp_odrf_mpfr_root_fsolver_name (const mp_odrf_mpfr_root_fsolver * @var{s})
 Return a pointer to the name of the solver.  Example:
 
 @example
 printf ("s is a '%s' solver\n",
-        mpgsl_root_fsolver_name (s));
+        mp_odrf_mpfr_root_fsolver_name (s));
 @end example
 
 @noindent
@@ -494,7 +494,7 @@ types described in this section.
 @subsection Providing only the function
 
 
-@deftp {Data Type} mpgsl_function
+@deftp {Data Type} mp_odrf_mpfr_function
 This data type defines a general math function with parameters.  Public
 fields description follows.
 
@@ -512,7 +512,7 @@ A pointer to the parameters of the function.
 @end deftp
 
 
-@defmac MPGSL_FN_EVAL (mpgsl_function * @var{F}, mpfr_t @var{result}, mpfr_t @var{x})
+@defmac MP_ODRF_MPFR_FN_EVAL (mp_odrf_mpfr_function * @var{F}, mpfr_t @var{result}, mpfr_t @var{x})
 Apply the math function described by @var{F} to the value @var{x} and
 store the result in @var{result}.  If successful returns
 @code{GSL_SUCCESS}, else a different code is returned.
@@ -536,11 +536,11 @@ f(x) = a x^2 + b x + c
 @end ifinfo
 @noindent
 with @math{a = 3}, @math{b = 2}, @math{c = 1}.  The following code
-defines an @code{mpgsl_function} @code{F} which we could pass to a root
+defines an @code{mp_odrf_mpfr_function} @code{F} which we could pass to a root
 finder, then ivokes it and prints the result.
 
 @smallexample
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 typedef struct @{
   mpfr_t a, b, c;
@@ -587,11 +587,11 @@ function (mpfr_t result, mpfr_t x, void * p)
 @}
 
 int
-main (int argc MPGSL_UNUSED, char * argv [])
+main (int argc MP_ODRF_MPFR_UNUSED, char * argv [])
 @{
   parameters_tag_t      params;
   mpfr_t                result, x;
-  mpgsl_function        F = @{
+  mp_odrf_mpfr_function        F = @{
     .function = function, .params = &params
   @};
   double                y = 2.4;
@@ -602,7 +602,7 @@ main (int argc MPGSL_UNUSED, char * argv [])
   mpfr_init(x);
   @{
     mpfr_set_d(x, 2.4, GMP_RNDN);
-    MPGSL_FN_EVAL(&F, result, x);
+    MP_ODRF_MPFR_FN_EVAL(&F, result, x);
     mpfr_fprintf(stderr,
       "%s: the function value is: %20RNf, should be close to: %f\n",
       argv[0], result, (3.0 * y * y + 2.0 * y + 1.0));
@@ -619,7 +619,7 @@ main (int argc MPGSL_UNUSED, char * argv [])
 @subsection Providing the function and its derivative
 
 
-@deftp {Data Type} mpgsl_function_fdf
+@deftp {Data Type} mp_odrf_mpfr_function_fdf
 This data type defines a general math function with parameters and its
 first derivative.  Public fields description follows.
 
@@ -651,21 +651,21 @@ Pointer to the parameters of the function.
 @end deftp
 
 
-@defmac MPGSL_FN_FDF_EVAL_F (mpgsl_function_fdf * @var{FDF}, mpfr_t @var{y}, mpfr_t @var{x})
+@defmac MP_ODRF_MPFR_FN_FDF_EVAL_F (mp_odrf_mpfr_function_fdf * @var{FDF}, mpfr_t @var{y}, mpfr_t @var{x})
 Apply the math function described by @var{FDF} to the value @var{x} and
 store the result in @var{y}.  If successful returns @code{GSL_SUCCESS},
 else a different code is returned.
 @end defmac
 
 
-@defmac MPGSL_FN_FDF_EVAL_DF (mpgsl_function_fdf * @var{FDF}, mpfr_t @var{dy}, mpfr_t @var{x})
+@defmac MP_ODRF_MPFR_FN_FDF_EVAL_DF (mp_odrf_mpfr_function_fdf * @var{FDF}, mpfr_t @var{dy}, mpfr_t @var{x})
 Apply the math derivative described by @var{FDF} to the value @var{x}
 and store the result in @var{dy}.  If successful returns
 @code{GSL_SUCCESS}, else a different code is returned.
 @end defmac
 
 
-@defmac MPGSL_FN_FDF_EVAL_F_DF (mpgsl_function_fdf * @var{FDF}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_t @var{dy})
+@defmac MP_ODRF_MPFR_FN_FDF_EVAL_F_DF (mp_odrf_mpfr_function_fdf * @var{FDF}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_t @var{dy})
 Apply the math function and its derivative described by @var{FDF} to the
 value @var{x} and store the result in @var{y} and @var{dy}.  If
 successful returns @code{GSL_SUCCESS}, else a different code is
@@ -703,11 +703,11 @@ f'(x) = 2 a x + b
 @end example
 
 @end ifinfo
-The following code defines an @code{mpgsl_function_fdf} @code{FDF} which
+The following code defines an @code{mp_odrf_mpfr_function_fdf} @code{FDF} which
 we could pass to a root finder, then ivokes it and prints the result.
 
 @smallexample
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 typedef struct @{
   mpfr_t a, b, c;
@@ -780,11 +780,11 @@ function_and_derivative (mpfr_t x , void * p, mpfr_t y, mpfr_t dy)
 @}
 
 int
-main (int argc MPGSL_UNUSED, char * argv [])
+main (int argc MP_ODRF_MPFR_UNUSED, char * argv [])
 @{
   parameters_tag_t      params;
   mpfr_t                dy, y, x;
-  mpgsl_function_fdf    FDF = @{
+  mp_odrf_mpfr_function_fdf    FDF = @{
     .f          = function,
     .df         = derivative,
     .fdf        = function_and_derivative,
@@ -799,15 +799,15 @@ main (int argc MPGSL_UNUSED, char * argv [])
   mpfr_init(x);
   @{
     mpfr_set_d(x, 2.4, GMP_RNDN);
-    MPGSL_FN_FDF_EVAL_F_DF(&FDF, x, y, dy);
+    MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(&FDF, x, y, dy);
     mpfr_fprintf(stderr,
                  "%s: y = %20RNf, dy = %20RNf, should be %f and %f\n",
                  argv[0], y, dy,
                  (3.0 * xd * xd + 2.0 * xd + 1.0),
                  (2.0 * 3.0 * xd + 2.0));
-    MPGSL_FN_FDF_EVAL_F(&FDF, y, x);
+    MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, y, x);
     mpfr_fprintf(stderr, "%s: y  = %20RNf\n", argv[0], y);
-    MPGSL_FN_FDF_EVAL_DF(&FDF, dy, x);
+    MP_ODRF_MPFR_FN_FDF_EVAL_DF(&FDF, dy, x);
     mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], dy);
   @}
   mpfr_clear(x);
@@ -852,7 +852,7 @@ expressions to save some computation of intermediate results (see the C
 function @cfunc{function_and_derivative}).
 
 @smallexample
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 typedef struct @{
   mpfr_t        ell;
@@ -925,11 +925,11 @@ function_and_derivative (mpfr_t x , void * p, mpfr_t y, mpfr_t dy)
 @}
 
 int
-main (int argc MPGSL_UNUSED, char * argv [])
+main (int argc MP_ODRF_MPFR_UNUSED, char * argv [])
 @{
   parameters_tag_t      params;
   mpfr_t                dy, y, x;
-  mpgsl_function_fdf    FDF = @{
+  mp_odrf_mpfr_function_fdf    FDF = @{
     .f          = function,
     .df         = derivative,
     .fdf        = function_and_derivative,
@@ -944,15 +944,15 @@ main (int argc MPGSL_UNUSED, char * argv [])
   mpfr_init(x);
   @{
     mpfr_set_d(x, 2.4, GMP_RNDN);
-    MPGSL_FN_FDF_EVAL_F_DF(&FDF, x, y, dy);
+    MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(&FDF, x, y, dy);
     mpfr_fprintf(stderr,
                  "%s: y = %20RNf, dy = %20RNf, should be %f and %f\n",
                  argv[0], y, dy,
                  (exp(2.0 * xd)),
                  (2.0 * exp(2.0 * xd)));
-    MPGSL_FN_FDF_EVAL_F(&FDF, y, x);
+    MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, y, x);
     mpfr_fprintf(stderr, "%s: y  = %20RNf\n", argv[0], y);
-    MPGSL_FN_FDF_EVAL_DF(&FDF, dy, x);
+    MP_ODRF_MPFR_FN_FDF_EVAL_DF(&FDF, dy, x);
     mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], dy);
   @}
   mpfr_clear(x);
@@ -995,8 +995,8 @@ different methods can be substituted at runtime without modifications to
 the code.
 
 
-@deftypefun int mpgsl_root_fsolver_iterate (mpgsl_root_fsolver * @var{s})
-@deftypefunx int mpgsl_root_fdfsolver_iterate (mpgsl_root_fdfsolver * @var{s})
+@deftypefun int mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver * @var{s})
+@deftypefunx int mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver * @var{s})
 These functions perform a single iteration of the solver @var{s}.  If the
 iteration encounters an unexpected problem then an error code will be
 returned:
@@ -1019,16 +1019,16 @@ bounding the root.  This information can be accessed with the following
 auxiliary functions.
 
 
-@deftypefun mpfr_ptr mpgsl_root_fsolver_root (const mpgsl_root_fsolver * @var{s})
-@deftypefunx mpfr_ptr mpgsl_root_fdfsolver_root (const mpgsl_root_fdfsolver * @var{s})
+@deftypefun mpfr_ptr mp_odrf_mpfr_root_fsolver_root (const mp_odrf_mpfr_root_fsolver * @var{s})
+@deftypefunx mpfr_ptr mp_odrf_mpfr_root_fdfsolver_root (const mp_odrf_mpfr_root_fdfsolver * @var{s})
 These functions return the current estimate of the root for the solver
 @var{s}.  The referenced number is part of solver's state, so it must
 @strong{not} be modified.
 @end deftypefun
 
 
-@deftypefun mpfr_ptr mpgsl_root_fsolver_x_lower (const mpgsl_root_fsolver * @var{s})
-@deftypefunx mpfr_ptr mpgsl_root_fsolver_x_upper (const mpgsl_root_fsolver * @var{s})
+@deftypefun mpfr_ptr mp_odrf_mpfr_root_fsolver_x_lower (const mp_odrf_mpfr_root_fsolver * @var{s})
+@deftypefunx mpfr_ptr mp_odrf_mpfr_root_fsolver_x_upper (const mp_odrf_mpfr_root_fsolver * @var{s})
 These functions return the current bracketing interval for the solver
 @var{s}.  The referenced numbers are part of solver's state, so they must
 @strong{not} be modified.
@@ -1062,7 +1062,7 @@ below allow the user to test the precision of the current result in
 several standard ways.
 
 
-@deftypefun int mpgsl_root_test_interval (mpfr_t @var{x_lower}, mpfr_t @var{x_upper}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
+@deftypefun int mp_odrf_mpfr_root_test_interval (mpfr_t @var{x_lower}, mpfr_t @var{x_upper}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
 This function tests for the convergence of the interval [@var{x_lower},
 @var{x_upper}] with absolute error @var{epsabs} and relative error
 @var{epsrel}.  The test returns @code{GSL_SUCCESS} if the following
@@ -1106,7 +1106,7 @@ assuming that the true root @math{r^*} is contained within the interval.
 @end deftypefun
 
 
-@deftypefun int mpgsl_root_test_delta (mpfr_t @var{x1}, mpfr_t @var{x0}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
+@deftypefun int mp_odrf_mpfr_root_test_delta (mpfr_t @var{x1}, mpfr_t @var{x0}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
 Test for the convergence of the sequence @dots{}, @var{x0}, @var{x1}
 with absolute error @var{epsabs} and relative error @var{epsrel}.  The
 test returns @code{GSL_SUCCESS} if the following condition is achieved:
@@ -1127,7 +1127,7 @@ and returns @code{GSL_CONTINUE} otherwise.
 @end deftypefun
 
 
-@deftypefun int mpgsl_root_test_residual (mpfr_t @var{f}, mpfr_t @var{epsabs})
+@deftypefun int mp_odrf_mpfr_root_test_residual (mpfr_t @var{f}, mpfr_t @var{epsabs})
 Test the residual value @var{f} against the absolute error bound
 @var{epsabs}.  The test returns @code{GSL_SUCCESS} if the following
 condition is achieved:
@@ -1166,7 +1166,7 @@ Note that a bracketing algorithm cannot find roots of even degree, since
 these do not cross the @math{x}-axis.
 
 
-@defvr {Solver} mpgsl_root_fsolver_bisection
+@defvr {Solver} mp_odrf_mpfr_root_fsolver_bisection
 
 @cindex bisection algorithm for finding roots
 @cindex root finding, bisection algorithm
@@ -1199,7 +1199,7 @@ the interval.
 @end defvr
 
 
-@defvr {Solver} mpgsl_root_fsolver_falsepos
+@defvr {Solver} mp_odrf_mpfr_root_fsolver_falsepos
 @cindex false position algorithm for finding roots
 @cindex root finding, false position algorithm
 
@@ -1230,7 +1230,7 @@ the interval on the current iteration.
 @end defvr
 
 
-@defvr {Solver} mpgsl_root_fsolver_brent
+@defvr {Solver} mp_odrf_mpfr_root_fsolver_brent
 @cindex Brent's method for finding roots
 @cindex root finding, Brent's method
 
@@ -1269,7 +1269,7 @@ quadratic.
 These algorithms make use of both the function and its derivative.
 
 
-@deffn {Derivative Solver} mpgsl_root_fdfsolver_newton
+@deffn {Derivative Solver} mp_odrf_mpfr_root_fdfsolver_newton
 @cindex Newton's method for finding roots
 @cindex root finding, Newton's method
 
@@ -1307,7 +1307,7 @@ for multiple roots.
 @end deffn
 
 
-@deffn {Derivative Solver} mpgsl_root_fdfsolver_secant
+@deffn {Derivative Solver} mp_odrf_mpfr_root_fdfsolver_secant
 @cindex secant method for finding roots
 @cindex root finding, secant method
 
@@ -1375,7 +1375,7 @@ roots.
 @end deffn
 
 
-@deffn {Derivative Solver} mpgsl_root_fdfsolver_steffenson
+@deffn {Derivative Solver} mp_odrf_mpfr_root_fdfsolver_steffenson
 @cindex Steffenson's method for finding roots
 @cindex root finding, Steffenson's method
 
@@ -1439,10 +1439,10 @@ Root polishing algorithms
 
 @smallexample
 #include <stdlib.h>
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_sin(y, x, GMP_RNDN);
   return GSL_SUCCESS;
@@ -1451,18 +1451,18 @@ sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
 int
 main (void)
 @{
-  mpgsl_root_fsolver * solver;
+  mp_odrf_mpfr_root_fsolver * solver;
   mpfr_t                x_lower, x_upper;
   mpfr_t                epsabs, epsrel;
   int                   e, iteration_count = 0;
-  mpgsl_function        F = @{ .function = sine_function,
+  mp_odrf_mpfr_function        F = @{ .function = sine_function,
                               .params   = NULL @};
 
   printf("*** One-dimensional root finding:\n\
 \tbisection algorithm,\n\
 \tinterval stop criterion.\n");
 
-  solver = mpgsl_root_fsolver_alloc(mpgsl_root_fsolver_bisection);
+  solver = mp_odrf_mpfr_root_fsolver_alloc(mp_odrf_mpfr_root_fsolver_bisection);
   if (NULL == solver) @{
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -1478,7 +1478,7 @@ main (void)
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
     mpfr_set_d(epsrel,  1e-3, GMP_RNDN);
 
-    e = mpgsl_root_fsolver_set(solver, &F, x_lower, x_upper);
+    e = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper);
     if (GSL_SUCCESS != e) @{
       fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
       goto end;
@@ -1486,11 +1486,11 @@ main (void)
 
     mpfr_printf("iteration %2d: [%-26Rf, %-26Rf]\n",
                 iteration_count++,
-                mpgsl_root_fsolver_x_lower(solver),
-                mpgsl_root_fsolver_x_upper(solver));
+                mp_odrf_mpfr_root_fsolver_x_lower(solver),
+                mp_odrf_mpfr_root_fsolver_x_upper(solver));
 
     do @{
-      e = mpgsl_root_fsolver_iterate(solver);
+      e = mp_odrf_mpfr_root_fsolver_iterate(solver);
       if (GSL_SUCCESS != e) @{
         fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
         goto end;
@@ -1498,11 +1498,11 @@ main (void)
 
       mpfr_printf("iteration %2d: [%-26Rf, %-26Rf]\n",
                   iteration_count++,
-                  mpgsl_root_fsolver_x_lower(solver),
-                  mpgsl_root_fsolver_x_upper(solver));
+                  mp_odrf_mpfr_root_fsolver_x_lower(solver),
+                  mp_odrf_mpfr_root_fsolver_x_upper(solver));
 
-      e = mpgsl_root_test_interval(mpgsl_root_fsolver_x_lower(solver),
-                                   mpgsl_root_fsolver_x_upper(solver),
+      e = mp_odrf_mpfr_root_test_interval(mp_odrf_mpfr_root_fsolver_x_lower(solver),
+                                   mp_odrf_mpfr_root_fsolver_x_upper(solver),
                                    epsabs, epsrel);
       switch (e) @{
       case GSL_SUCCESS:
@@ -1515,14 +1515,14 @@ main (void)
       @}
     @} while (GSL_CONTINUE == e);
   solved:
-    mpfr_printf("result = %Rf\n", mpgsl_root_fsolver_root(solver));
+    mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fsolver_root(solver));
   @}
  end:
   mpfr_clear(epsrel);
   mpfr_clear(epsabs);
   mpfr_clear(x_upper);
   mpfr_clear(x_lower);
-  mpgsl_root_fsolver_free(solver);
+  mp_odrf_mpfr_root_fsolver_free(solver);
   exit(EXIT_SUCCESS);
 @}
 @end smallexample
@@ -1534,10 +1534,10 @@ main (void)
 
 @smallexample
 #include <stdlib.h>
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_sin(y, x, GMP_RNDN);
   return GSL_SUCCESS;
@@ -1546,18 +1546,18 @@ sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
 int
 main (void)
 @{
-  mpgsl_root_fsolver *  solver;
+  mp_odrf_mpfr_root_fsolver *  solver;
   mpfr_t                x_lower, x_upper;
   mpfr_t                epsabs, epsrel, x1;
   int                   e, iteration_count = 0;
-  mpgsl_function        F = @{ .function = sine_function,
+  mp_odrf_mpfr_function        F = @{ .function = sine_function,
                               .params   = NULL @};
 
   printf("*** One-dimensional root finding:\n\
 \tfalsepos algorithm,\n\
 \tdelta stop criterion.\n");
 
-  solver = mpgsl_root_fsolver_alloc(mpgsl_root_fsolver_falsepos);
+  solver = mp_odrf_mpfr_root_fsolver_alloc(mp_odrf_mpfr_root_fsolver_falsepos);
   if (NULL == solver) @{
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -1576,32 +1576,32 @@ main (void)
 
     mpfr_set(x1, x_lower, GMP_RNDN);
 
-    e = mpgsl_root_fsolver_set(solver, &F, x_lower, x_upper);
+    e = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper);
     if (GSL_SUCCESS != e) @{
       fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
       goto end;
     @}
 
     mpfr_printf("iteration %2d: x = %-28Rf\n",
-                iteration_count++, mpgsl_root_fsolver_root(solver));
+                iteration_count++, mp_odrf_mpfr_root_fsolver_root(solver));
 
     do @{
-      e = mpgsl_root_fsolver_iterate(solver);
+      e = mp_odrf_mpfr_root_fsolver_iterate(solver);
       if (GSL_SUCCESS != e) @{
         fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
         goto end;
       @}
 
       mpfr_printf("iteration %2d: x = %-28Rf\n",
-                  iteration_count++, mpgsl_root_fsolver_root(solver));
+                  iteration_count++, mp_odrf_mpfr_root_fsolver_root(solver));
 
-      e = mpgsl_root_test_delta(x1, mpgsl_root_fsolver_root(solver),
+      e = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fsolver_root(solver),
                                 epsabs, epsrel);
       switch (e) @{
       case GSL_SUCCESS:
         goto solved;
       case GSL_CONTINUE:
-        mpfr_set(x1, mpgsl_root_fsolver_root(solver), GMP_RNDN);
+        mpfr_set(x1, mp_odrf_mpfr_root_fsolver_root(solver), GMP_RNDN);
         break;
       default:
         fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
@@ -1609,14 +1609,14 @@ main (void)
       @}
     @} while (GSL_CONTINUE == e);
   solved:
-    mpfr_printf("result = %Rf\n", mpgsl_root_fsolver_root(solver));
+    mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fsolver_root(solver));
   @}
  end:
   mpfr_clear(epsrel);
   mpfr_clear(epsabs);
   mpfr_clear(x_upper);
   mpfr_clear(x_lower);
-  mpgsl_root_fsolver_free(solver);
+  mp_odrf_mpfr_root_fsolver_free(solver);
   exit(EXIT_SUCCESS);
 @}
 @end smallexample
@@ -1628,10 +1628,10 @@ main (void)
 
 @smallexample
 #include <stdlib.h>
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_sin(y, x, GMP_RNDN);
   return GSL_SUCCESS;
@@ -1640,18 +1640,18 @@ sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
 int
 main (void)
 @{
-  mpgsl_root_fsolver *  solver;
+  mp_odrf_mpfr_root_fsolver *  solver;
   mpfr_t                x_lower, x_upper;
   mpfr_t                epsabs, residual;
   int                   e, iteration_count = 0;
-  mpgsl_function        F = @{ .function = sine_function,
+  mp_odrf_mpfr_function        F = @{ .function = sine_function,
                               .params   = NULL @};
 
   printf("*** One-dimensional root finding:\n\
 \tbrent algorithm,\n\
 \tresidual stop criterion.\n");
 
-  solver = mpgsl_root_fsolver_alloc(mpgsl_root_fsolver_brent);
+  solver = mp_odrf_mpfr_root_fsolver_alloc(mp_odrf_mpfr_root_fsolver_brent);
   if (NULL == solver) @{
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -1666,32 +1666,32 @@ main (void)
     mpfr_set_d(x_upper, +0.5, GMP_RNDN);
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
 
-    e = mpgsl_root_fsolver_set(solver, &F, x_lower, x_upper);
+    e = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper);
     if (GSL_SUCCESS != e) @{
       fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
       goto end;
     @}
 
-    MPGSL_FN_EVAL(&F, residual, mpgsl_root_fsolver_root(solver));
+    MP_ODRF_MPFR_FN_EVAL(&F, residual, mp_odrf_mpfr_root_fsolver_root(solver));
     mpfr_printf("iteration %2d: x = %-30Rf, f(x) = %-30Rf\n",
                 iteration_count++,
-                mpgsl_root_fsolver_root(solver),
+                mp_odrf_mpfr_root_fsolver_root(solver),
                 residual);
 
     do @{
-      e = mpgsl_root_fsolver_iterate(solver);
+      e = mp_odrf_mpfr_root_fsolver_iterate(solver);
       if (GSL_SUCCESS != e) @{
         fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
         goto end;
       @}
 
-      MPGSL_FN_EVAL(&F, residual, mpgsl_root_fsolver_root(solver));
+      MP_ODRF_MPFR_FN_EVAL(&F, residual, mp_odrf_mpfr_root_fsolver_root(solver));
       mpfr_printf("iteration %2d: x = %-30Rf, f(x) = %-30Rf\n",
                   iteration_count++,
-                  mpgsl_root_fsolver_root(solver),
+                  mp_odrf_mpfr_root_fsolver_root(solver),
                   residual);
 
-      e = mpgsl_root_test_residual(residual, epsabs);
+      e = mp_odrf_mpfr_root_test_residual(residual, epsabs);
       switch (e) @{
       case GSL_SUCCESS:
         goto solved;
@@ -1703,14 +1703,14 @@ main (void)
       @}
     @} while (GSL_CONTINUE == e);
   solved:
-    mpfr_printf("result = %Rf\n", mpgsl_root_fsolver_root(solver));
+    mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fsolver_root(solver));
   @}
  end:
   mpfr_clear(residual);
   mpfr_clear(epsabs);
   mpfr_clear(x_upper);
   mpfr_clear(x_lower);
-  mpgsl_root_fsolver_free(solver);
+  mp_odrf_mpfr_root_fsolver_free(solver);
   exit(EXIT_SUCCESS);
 @}
 @end smallexample
@@ -1722,22 +1722,22 @@ main (void)
 
 @smallexample
 #include <stdlib.h>
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_sin(y, x, GMP_RNDN);
   return GSL_SUCCESS;
 @}
 static int
-cosine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+cosine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_cos(y, x, GMP_RNDN);
   return GSL_SUCCESS;
 @}
 static int
-sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
+sine_and_cosine_function (mpfr_t x, void * p MP_ODRF_MPFR_UNUSED,
                           mpfr_t y, mpfr_t dy)
 @{
   mpfr_sin(y,  x, GMP_RNDN);
@@ -1748,10 +1748,10 @@ sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
 int
 main (void)
 @{
-  mpgsl_root_fdfsolver *solver;
+  mp_odrf_mpfr_root_fdfsolver *solver;
   mpfr_t                epsabs, epsrel, x1;
   int                   e, iteration_count = 0;
-  mpgsl_function_fdf    F = @{ .f      = sine_function,
+  mp_odrf_mpfr_function_fdf    F = @{ .f      = sine_function,
                               .df     = cosine_function,
                               .fdf    = sine_and_cosine_function,
                               .params = NULL @};
@@ -1760,7 +1760,7 @@ main (void)
 \tnewton algorithm,\n\
 \tdelta stop criterion.\n");
 
-  solver = mpgsl_root_fdfsolver_alloc(mpgsl_root_fdfsolver_newton);
+  solver = mp_odrf_mpfr_root_fdfsolver_alloc(mp_odrf_mpfr_root_fdfsolver_newton);
   if (NULL == solver) @{
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -1774,7 +1774,7 @@ main (void)
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
     mpfr_set_d(epsrel,  1e-6, GMP_RNDN);
 
-    e = mpgsl_root_fdfsolver_set(solver, &F, x1);
+    e = mp_odrf_mpfr_root_fdfsolver_set(solver, &F, x1);
     if (GSL_SUCCESS != e) @{
       fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
       goto end;
@@ -1782,10 +1782,10 @@ main (void)
 
     mpfr_printf("iteration %2d: x = %-32Rf\n",
                 iteration_count++,
-                mpgsl_root_fdfsolver_root(solver));
+                mp_odrf_mpfr_root_fdfsolver_root(solver));
 
     do @{
-      e = mpgsl_root_fdfsolver_iterate(solver);
+      e = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
       if (GSL_SUCCESS != e) @{
         fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
         goto end;
@@ -1793,15 +1793,15 @@ main (void)
 
       mpfr_printf("iteration %2d: x = %-32Rf\n",
                   iteration_count++,
-                  mpgsl_root_fdfsolver_root(solver));
+                  mp_odrf_mpfr_root_fdfsolver_root(solver));
 
-      e = mpgsl_root_test_delta(x1, mpgsl_root_fdfsolver_root(solver),
+      e = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fdfsolver_root(solver),
                                 epsabs, epsrel);
       switch (e) @{
       case GSL_SUCCESS:
         goto solved;
       case GSL_CONTINUE:
-        mpfr_set(x1, mpgsl_root_fdfsolver_root(solver), GMP_RNDN);
+        mpfr_set(x1, mp_odrf_mpfr_root_fdfsolver_root(solver), GMP_RNDN);
         break;
       default:
         fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
@@ -1809,13 +1809,13 @@ main (void)
       @}
     @} while (GSL_CONTINUE == e);
   solved:
-    mpfr_printf("result = %Rf\n", mpgsl_root_fdfsolver_root(solver));
+    mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fdfsolver_root(solver));
   @}
  end:
   mpfr_clear(epsabs);
   mpfr_clear(epsrel);
   mpfr_clear(x1);
-  mpgsl_root_fdfsolver_free(solver);
+  mp_odrf_mpfr_root_fdfsolver_free(solver);
   exit(EXIT_SUCCESS);
 @}
 @end smallexample
@@ -1827,22 +1827,22 @@ main (void)
 
 @smallexample
 #include <stdlib.h>
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_sin(y, x, GMP_RNDN);
   return GSL_SUCCESS;
 @}
 static int
-cosine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+cosine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_cos(y, x, GMP_RNDN);
   return GSL_SUCCESS;
 @}
 static int
-sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
+sine_and_cosine_function (mpfr_t x, void * p MP_ODRF_MPFR_UNUSED,
                           mpfr_t y, mpfr_t dy)
 @{
   mpfr_sin(y,  x, GMP_RNDN);
@@ -1853,10 +1853,10 @@ sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
 int
 main (void)
 @{
-  mpgsl_root_fdfsolver *solver;
+  mp_odrf_mpfr_root_fdfsolver *solver;
   mpfr_t                epsabs, epsrel, x1;
   int                   e, iteration_count = 0;
-  mpgsl_function_fdf    F = @{ .f      = sine_function,
+  mp_odrf_mpfr_function_fdf    F = @{ .f      = sine_function,
                               .df     = cosine_function,
                               .fdf    = sine_and_cosine_function,
                               .params = NULL @};
@@ -1865,7 +1865,7 @@ main (void)
 \tsecant algorithm,\n\
 \tdelta stop criterion.\n");
 
-  solver = mpgsl_root_fdfsolver_alloc(mpgsl_root_fdfsolver_secant);
+  solver = mp_odrf_mpfr_root_fdfsolver_alloc(mp_odrf_mpfr_root_fdfsolver_secant);
   if (NULL == solver) @{
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -1879,7 +1879,7 @@ main (void)
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
     mpfr_set_d(epsrel,  1e-6, GMP_RNDN);
 
-    e = mpgsl_root_fdfsolver_set(solver, &F, x1);
+    e = mp_odrf_mpfr_root_fdfsolver_set(solver, &F, x1);
     if (GSL_SUCCESS != e) @{
       fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
       goto end;
@@ -1887,10 +1887,10 @@ main (void)
 
     mpfr_printf("iteration %2d: x = %-32Rf\n",
                 iteration_count++,
-                mpgsl_root_fdfsolver_root(solver));
+                mp_odrf_mpfr_root_fdfsolver_root(solver));
 
     do @{
-      e = mpgsl_root_fdfsolver_iterate(solver);
+      e = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
       if (GSL_SUCCESS != e) @{
         fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
         goto end;
@@ -1898,15 +1898,15 @@ main (void)
 
       mpfr_printf("iteration %2d: x = %-32Rf\n",
                   iteration_count++,
-                  mpgsl_root_fdfsolver_root(solver));
+                  mp_odrf_mpfr_root_fdfsolver_root(solver));
 
-      e = mpgsl_root_test_delta(x1, mpgsl_root_fdfsolver_root(solver),
+      e = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fdfsolver_root(solver),
                                 epsabs, epsrel);
       switch (e) @{
       case GSL_SUCCESS:
         goto solved;
       case GSL_CONTINUE:
-        mpfr_set(x1, mpgsl_root_fdfsolver_root(solver), GMP_RNDN);
+        mpfr_set(x1, mp_odrf_mpfr_root_fdfsolver_root(solver), GMP_RNDN);
         break;
       default:
         fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
@@ -1914,13 +1914,13 @@ main (void)
       @}
     @} while (GSL_CONTINUE == e);
   solved:
-    mpfr_printf("result = %Rf\n", mpgsl_root_fdfsolver_root(solver));
+    mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fdfsolver_root(solver));
   @}
  end:
   mpfr_clear(epsabs);
   mpfr_clear(epsrel);
   mpfr_clear(x1);
-  mpgsl_root_fdfsolver_free(solver);
+  mp_odrf_mpfr_root_fdfsolver_free(solver);
   exit(EXIT_SUCCESS);
 @}
 @end smallexample
@@ -1932,22 +1932,22 @@ main (void)
 
 @smallexample
 #include <stdlib.h>
-#include <mpgsl.h>
+#include <mp_odrf_mpfr.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_sin(y, x, GMP_RNDN);
   return GSL_SUCCESS;
 @}
 static int
-cosine_function (mpfr_t y, mpfr_t x, void * p MPGSL_UNUSED)
+cosine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
 @{
   mpfr_cos(y, x, GMP_RNDN);
   return GSL_SUCCESS;
 @}
 static int
-sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
+sine_and_cosine_function (mpfr_t x, void * p MP_ODRF_MPFR_UNUSED,
                           mpfr_t y, mpfr_t dy)
 @{
   mpfr_sin(y,  x, GMP_RNDN);
@@ -1958,10 +1958,10 @@ sine_and_cosine_function (mpfr_t x, void * p MPGSL_UNUSED,
 int
 main (void)
 @{
-  mpgsl_root_fdfsolver *solver;
+  mp_odrf_mpfr_root_fdfsolver *solver;
   mpfr_t                guess, epsabs, residual;
   int                   e, iteration_count = 0;
-  mpgsl_function_fdf    F = @{ .f      = sine_function,
+  mp_odrf_mpfr_function_fdf    F = @{ .f      = sine_function,
                               .df     = cosine_function,
                               .fdf    = sine_and_cosine_function,
                               .params = NULL @};
@@ -1970,7 +1970,7 @@ main (void)
 \tsteffenson algorithm,\n\
 \tresidual stop criterion.\n");
 
-  solver = mpgsl_root_fdfsolver_alloc(mpgsl_root_fdfsolver_steffenson);
+  solver = mp_odrf_mpfr_root_fdfsolver_alloc(mp_odrf_mpfr_root_fdfsolver_steffenson);
   if (NULL == solver) @{
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -1983,34 +1983,34 @@ main (void)
     mpfr_set_d(guess, -1.0, GMP_RNDN);
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
 
-    e = mpgsl_root_fdfsolver_set(solver, &F, guess);
+    e = mp_odrf_mpfr_root_fdfsolver_set(solver, &F, guess);
     if (GSL_SUCCESS != e) @{
       fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
       goto end;
     @}
 
-    MPGSL_FN_FDF_EVAL_F(&F, residual,
-                        mpgsl_root_fdfsolver_root(solver));
+    MP_ODRF_MPFR_FN_FDF_EVAL_F(&F, residual,
+                        mp_odrf_mpfr_root_fdfsolver_root(solver));
     mpfr_printf("iteration %2d: x = %-32Rf, f(x) = %-32Rf\n",
                 iteration_count++,
-                mpgsl_root_fdfsolver_root(solver),
+                mp_odrf_mpfr_root_fdfsolver_root(solver),
                 residual);
 
     do @{
-      e = mpgsl_root_fdfsolver_iterate(solver);
+      e = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
       if (GSL_SUCCESS != e) @{
         fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
         goto end;
       @}
 
-      MPGSL_FN_FDF_EVAL_F(&F, residual,
-                          mpgsl_root_fdfsolver_root(solver));
+      MP_ODRF_MPFR_FN_FDF_EVAL_F(&F, residual,
+                          mp_odrf_mpfr_root_fdfsolver_root(solver));
       mpfr_printf("iteration %2d: x = %-32Rf, f(x) = %-32Rf\n",
                   iteration_count++,
-                  mpgsl_root_fdfsolver_root(solver),
+                  mp_odrf_mpfr_root_fdfsolver_root(solver),
                   residual);
 
-      e = mpgsl_root_test_residual(residual, epsabs);
+      e = mp_odrf_mpfr_root_test_residual(residual, epsabs);
       switch (e) @{
       case GSL_SUCCESS:
         goto solved;
@@ -2022,13 +2022,13 @@ main (void)
       @}
     @} while (GSL_CONTINUE == e);
   solved:
-    mpfr_printf("result = %Rf\n", mpgsl_root_fdfsolver_root(solver));
+    mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fdfsolver_root(solver));
   @}
  end:
   mpfr_clear(residual);
   mpfr_clear(epsabs);
   mpfr_clear(guess);
-  mpgsl_root_fdfsolver_free(solver);
+  mp_odrf_mpfr_root_fdfsolver_free(solver);
   exit(EXIT_SUCCESS);
 @}
 @end smallexample
