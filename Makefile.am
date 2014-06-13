@@ -52,7 +52,10 @@ libmpodrf_la_SOURCES	= \
 check_PROGRAMS	= \
 	tests/version		\
 	tests/root-bracketing	\
-	tests/root-polishing
+	tests/root-polishing	\
+	tests/macros-0		\
+	tests/macros-1		\
+	tests/macros-2
 
 TESTS				= $(check_PROGRAMS)
 
@@ -71,6 +74,18 @@ tests_root_bracketing_SOURCES	= tests/root-bracketing.c $(mp_odrf_tests_sources)
 tests_root_polishing_CPPFLAGS	= $(mp_odrf_tests_cppflags)
 tests_root_polishing_LDADD	= $(mp_odrf_tests_ldadd)
 tests_root_polishing_SOURCES	= tests/root-polishing.c $(mp_odrf_tests_sources)
+
+tests_macros_0_CPPFLAGS		= $(mp_odrf_tests_cppflags)
+tests_macros_0_LDADD		= $(mp_odrf_tests_ldadd)
+tests_macros_0_SOURCES		= tests/macros-0.c $(mp_odrf_tests_sources)
+
+tests_macros_1_CPPFLAGS		= $(mp_odrf_tests_cppflags)
+tests_macros_1_LDADD		= $(mp_odrf_tests_ldadd)
+tests_macros_1_SOURCES		= tests/macros-1.c $(mp_odrf_tests_sources)
+
+tests_macros_2_CPPFLAGS		= $(mp_odrf_tests_cppflags)
+tests_macros_2_LDADD		= $(mp_odrf_tests_ldadd)
+tests_macros_2_SOURCES		= tests/macros-2.c $(mp_odrf_tests_sources)
 
 ## --------------------------------------------------------------------
 
