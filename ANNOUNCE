@@ -10,7 +10,9 @@ using the multiple precision numbers defined by MPFR.
 
   This  package  depends  upon  the following  packages:  GMP,  the  GNU
 Multiple  Precision arithmetic  library;  MPFR,  the Multiple  Precision
-Floating-Point Reliable library.
+Floating-Point Reliable  library.  Both  the code and  the documentation
+are reworked  from the original  GSL distribution; however  this package
+does not depend on the GSL being installed.
 
   The package  makes use  of the  GNU Autotools  and it  is tested  on a
 GNU+Linux  system.   It is  distributed  under  the GNU  General  Public
