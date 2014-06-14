@@ -383,6 +383,9 @@ Type of integers used to represent result conditions and error codes.
 The following symbols are defined:
 
 @table @code
+@item MP_ODRF_POSITIVE_ERROR_CODE_LIMIT
+Positive integer being one more of the maximum defined code.
+
 @item MP_ODRF_CONTINUE
 Positive integer.  Used to signal that an iteration is allowed to go on
 with the next step.
@@ -442,7 +445,7 @@ mp_odrf_mpfr_root_fsolver_t *   S;
 
 T = mp_odrf_mpfr_root_fsolver_bisection;
 S = mp_odrf_mpfr_root_fsolver_alloc (T);
-if (NULL != rv) @{
+if (NULL != S) @{
   /* do something here */
   mp_odrf_mpfr_root_fsolver_free(S);
 @} else @{
@@ -457,9 +460,9 @@ Type of solver for root bracketing solvers.
 @end deftp
 
 
-@deftypefun {mp_odrf_mpfr_root_fsolver_t *} mp_odrf_mpfr_root_fsolver_alloc (const mp_odrf_mpfr_root_fsolver_type * @var{T})
+@deftypefun {mp_odrf_mpfr_root_fsolver_t *} mp_odrf_mpfr_root_fsolver_alloc (const mp_odrf_mpfr_root_fsolver_driver_t * @var{T})
 Allocate a new instance of a solver of type @var{T}; if successful
-return a pointer to the solver structurre, otherwise return @cnull{}.
+return a pointer to the solver structure, otherwise return @cnull{}.
 This function returns @cnull{} only when memory allocation through
 @cfunc{malloc} fails.
 @end deftypefun
@@ -516,7 +519,7 @@ Type of solver for root polishing solvers.
 
 @deftypefun {mp_odrf_mpfr_root_fdfsolver_t *} mp_odrf_mpfr_root_fdfsolver_alloc (const mp_odrf_mpfr_root_fdfsolver_driver_t * @var{T})
 Allocate a new instance of a derivative--based solver of type @var{T};
-if successful return a pointer to the solver structurre, otherwise
+if successful return a pointer to the solver structure, otherwise
 return @cnull{}.  This function returns @cnull{} only when memory
 allocation through @cfunc{malloc} fails.
 @end deftypefun
@@ -578,6 +581,12 @@ the function implementation.
 When successful the function must return @code{MP_ODRF_OK}.  If an error
 occurs: it must return an appropriate error code, which can be a value
 of type @code{mp_odrf_code_t} or a user--defined code.
+
+@quotation
+@strong{HINT} If a function implementation must signal an error with
+associated data: such data can be stored in an appropriate data
+structure referenced by @var{params}.
+@end quotation
 @end deftypefn
 
 
@@ -587,13 +596,19 @@ computes the mathematical function subject of the problem and its
 derivative.
 
 The actual implementation function must compute the mathematical
-function and its derivative at abscissa @var{X} and store the result in
+function and its derivative at abscissa @var{X} and store the results in
 @var{Y} and @var{DY} which must be already initialised.  @var{params}
 can be used to hand custom data to the function implementation.
 
 When successful the function must return @code{MP_ODRF_OK}.  If an error
 occurs: it must return an appropriate error code, which can be a value
 of type @code{mp_odrf_code_t} or a user--defined code.
+
+@quotation
+@strong{HINT} If a function implementation must signal an error with
+associated data: such data can be stored in an appropriate data
+structure referenced by @var{params}.
+@end quotation
 @end deftypefn
 
 @c page
@@ -769,8 +784,8 @@ value @var{X} and store the result in @var{Y}.  When successful return
 
 @deftypefn {Preprocessor Macro} int MP_ODRF_MPFR_FN_FDF_EVAL_F_DF (mp_odrf_mpfr_function_fdf_t * @var{FDF}, mpfr_ptr @var{DY}, mpfr_ptr @var{Y}, mpfr_ptr @var{X})
 Apply both the math function described by @var{FDF} and its derivative
-to the value @var{X} and store the result in @var{Y} and @var{DY}.  When
-successful return @code{MP_ODRF_OK}; if an error occurs return a
+to the value @var{X} and store the results in @var{Y} and @var{DY}.
+When successful return @code{MP_ODRF_OK}; if an error occurs return a
 suitable error code.
 @end deftypefn
 
@@ -882,7 +897,7 @@ static int
 function_and_derivative (mpfr_ptr DY, mpfr_ptr Y,
                          mpfr_ptr X, void * params_)
 @{
-  mp_odrf_operation_code_t      rv;
+  int                           rv;
   rv = function(Y, X, params_);
   if (MP_ODRF_OK == rv) @{
      rv = derivative(DY, X, params_);

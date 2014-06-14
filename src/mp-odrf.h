@@ -101,6 +101,7 @@ extern "C" {
  ** ----------------------------------------------------------------- */
 
 typedef enum {
+  MP_ODRF_POSITIVE_ERROR_CODE_LIMIT			=   2,
   MP_ODRF_CONTINUE					=   1,
   MP_ODRF_OK						=   0,
   MP_ODRF_ERROR						=  -1,
