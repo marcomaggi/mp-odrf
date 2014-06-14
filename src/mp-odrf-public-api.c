@@ -100,7 +100,7 @@ mp_odrf_mpfr_root_fsolver_set (mp_odrf_mpfr_root_fsolver_t * S,
   }
   return retval;
 }
-mp_odrf_code_t
+int
 mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * S)
 /* Perform a search iteration for a root bracketing state struct. */
 {
@@ -177,7 +177,7 @@ mp_odrf_mpfr_root_fdfsolver_set (mp_odrf_mpfr_root_fdfsolver_t * S,
   mpfr_set(S->root, root, GMP_RNDN);
   return (S->driver->set)(S->driver_state, S->fdf, S->root);
 }
-mp_odrf_code_t
+int
 mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver_t * S)
 /* Perform a search iteration for a root polishing state struct. */
 {

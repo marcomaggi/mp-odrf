@@ -286,8 +286,7 @@ mp_odrf_decl mp_odrf_code_t \
 				 mpfr_t x_lower, mpfr_t x_upper);
 
 /* Perform a search iteration for a root bracketing state struct. */
-mp_odrf_decl mp_odrf_code_t \
-  mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * S);
+mp_odrf_decl int mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * S);
 
 /* Inspect the current state of a root bracketing problem. */
 mp_odrf_decl const char * mp_odrf_mpfr_root_fsolver_name (const mp_odrf_mpfr_root_fsolver_t * S);
@@ -326,8 +325,7 @@ mp_odrf_decl mp_odrf_code_t \
 					 mpfr_t root);
 
 /* Perform a search iteration for a root polishing state struct. */
-mp_odrf_decl mp_odrf_code_t \
-  mp_odrf_mpfr_root_fdfsolver_iterate	(mp_odrf_mpfr_root_fdfsolver_t * S);
+mp_odrf_decl int mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver_t * S);
 
 /* Inspect the current state of a root polishing problem. */
 mp_odrf_decl const char * mp_odrf_mpfr_root_fdfsolver_name (const mp_odrf_mpfr_root_fdfsolver_t * S);

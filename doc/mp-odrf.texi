@@ -1124,21 +1124,11 @@ different methods can be substituted at runtime without modifications to
 the code.
 
 
-@deftypefun mp_odrf_operation_code_t mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * @var{S})
-@deftypefunx mp_odrf_operation_code_t mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver_t * @var{S})
-These functions perform a single iteration of the solver @var{S}.  If the
-iteration encounters an unexpected problem then an error code will be
-returned:
-
-@table @code
-@item GSL_EBADFUNC
-The iteration encountered a singular point where the function or its
-derivative evaluated to @code{Inf} or @code{NaN}.
-
-@item GSL_EZERODIV
-The derivative of the function vanished at the iteration point,
-preventing the algorithm from continuing without a division by zero.
-@end table
+@deftypefun int mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * @var{S})
+@deftypefunx int mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver_t * @var{S})
+These functions perform a single iteration of the solver @var{S}.  When
+successful return @code{MP_ODRF_OK}, otherwise return a suitable error
+code.
 @end deftypefun
 
 
@@ -1191,10 +1181,10 @@ below allow the user to test the precision of the current result in
 several standard ways.
 
 
-@deftypefun int mp_odrf_mpfr_root_test_interval (mpfr_t @var{x_lower}, mpfr_t @var{x_upper}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
+@deftypefun mp_odrf_code_t mp_odrf_mpfr_root_test_interval (mpfr_t @var{x_lower}, mpfr_t @var{x_upper}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
 This function tests for the convergence of the interval [@var{x_lower},
 @var{x_upper}] with absolute error @var{epsabs} and relative error
-@var{epsrel}.  The test returns @code{GSL_SUCCESS} if the following
+@var{epsrel}.  The test returns @code{MP_ODRF_OK} if the following
 condition is achieved:
 @tex
 $$
@@ -1232,13 +1222,16 @@ $$
 @end ifinfo
 @noindent
 assuming that the true root @math{r^*} is contained within the interval.
+
+If the condition is not verified: the return value is
+@code{MP_ODRF_CONTINUE}.
 @end deftypefun
 
 
-@deftypefun int mp_odrf_mpfr_root_test_delta (mpfr_t @var{x1}, mpfr_t @var{x0}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
+@deftypefun mp_odrf_code_t mp_odrf_mpfr_root_test_delta (mpfr_t @var{x1}, mpfr_t @var{x0}, mpfr_t @var{epsabs}, mpfr_t @var{epsrel})
 Test for the convergence of the sequence @dots{}, @var{x0}, @var{x1}
 with absolute error @var{epsabs} and relative error @var{epsrel}.  The
-test returns @code{GSL_SUCCESS} if the following condition is achieved:
+test returns @code{MP_ODRF_OK} if the following condition is achieved:
 @tex
 $$
 |x_1 - x_0| < \hbox{\it epsabs} + \hbox{\it epsrel\/}\, |x_1|
@@ -1252,13 +1245,13 @@ $$
 
 @end ifinfo
 @noindent
-and returns @code{GSL_CONTINUE} otherwise.
+and returns @code{MP_ODRF_CONTINUE} otherwise.
 @end deftypefun
 
 
-@deftypefun int mp_odrf_mpfr_root_test_residual (mpfr_t @var{f}, mpfr_t @var{epsabs})
+@deftypefun mp_odrf_code_t mp_odrf_mpfr_root_test_residual (mpfr_t @var{f}, mpfr_t @var{epsabs})
 Test the residual value @var{f} against the absolute error bound
-@var{epsabs}.  The test returns @code{GSL_SUCCESS} if the following
+@var{epsabs}.  The test returns @code{MP_ODRF_OK} if the following
 condition is achieved:
 @tex
 $$
@@ -1273,10 +1266,10 @@ $$
 
 @end ifinfo
 @noindent
-and returns @code{GSL_CONTINUE} otherwise.  This criterion is suitable
-for situations where the precise location of the root, @math{x}, is
-unimportant provided a value can be found where the residual,
-@math{|f(x)|}, is small enough.
+and returns @code{MP_ODRF_CONTINUE} otherwise.  This criterion is
+suitable for situations where the precise location of the root,
+@math{x}, is unimportant provided a value can be found where the
+residual, @math{|f(x)|}, is small enough.
 @end deftypefun
 
 @c page
@@ -1289,7 +1282,7 @@ initial interval which is guaranteed to contain a root---if @math{a} and
 @math{b} are the endpoints of the interval then @math{f(a)} must differ
 in sign from @math{f(b)}.  This ensures that the function crosses zero
 at least once in the interval.  If a valid initial interval is used then
-these algorithm cannot fail, provided the function is well-behaved.
+these algorithms cannot fail, provided the function is well--behaved.
 
 Note that a bracketing algorithm cannot find roots of even degree, since
 these do not cross the @math{x}-axis.
