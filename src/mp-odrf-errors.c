@@ -1,12 +1,12 @@
 /*
   Part of: Multiple Precision One-Dimensional Root-Finding
-  Contents: static definitions of error descriptors
+  Contents: definitions for error handling
   Date: Fri Jun  6, 2014
 
   Abstract
 
-	This file defines  the error descriptor structs used  by the API
-	functions to describe exceptions.
+	This file  defines the  error messages  associated to  the error
+	codes.
 
   Copyright (C) 2014 Marco Maggi <marco.maggi-ipsu@poste.it>
 
@@ -36,41 +36,33 @@
  ** Definitions.
  ** ----------------------------------------------------------------- */
 
-const mp_odrf_error_t	mp_odrf_error_no_memory = {
-  .code		= MP_ODRF_NO_MEMORY_FOR_STATE_STRUCT,
-  .description	= "failed to allocate space for root solver state"
-};
-const mp_odrf_error_t	mp_odrf_error_invalid_bracket_interval = {
-  .code		= MP_ODRF_INVALID_BRACKET_INTERVAL,
-  .description	= "invalid bracket interval (lower > upper)"
-};
-const mp_odrf_error_t	mp_odrf_error_relative_tolerance_is_negative = {
-  .code		= MP_ODRF_RELATIVE_TOLERANCE_IS_NEGATIVE,
-  .description	= "relative tolerance is negative"
-};
-const mp_odrf_error_t	mp_odrf_error_absolute_tolerance_is_negative = {
-  .code		= MP_ODRF_ABSOLUTE_TOLERANCE_IS_NEGATIVE,
-  .description	= "absolute tolerance is negative"
-};
-const mp_odrf_error_t	mp_odrf_error_lower_bound_larger_than_upper_bound = {
-  .code		= MP_ODRF_LOWER_BOUND_LARGER_THAN_UPPER_BOUND,
-  .description	= "lower bound larger than upper bound"
-};
-const mp_odrf_error_t	mp_odrf_error_endpoints_do_not_straddle = {
-  .code		= MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE,
-  .description	= "endpoints do not straddle y=0"
-};
-const mp_odrf_error_t	mp_odrf_error_function_value_is_not_finite = {
-  .code		= MP_ODRF_ERROR_FUNCTION_VALUE_IS_NOT_FINITE,
-  .description	= "function value is not finite"
-};
-const mp_odrf_error_t	mp_odrf_error_derivative_is_zero = {
-  .code		= MP_ODRF_ERROR_DERIVATIVE_IS_ZERO,
-  .description	= "derivative is zero"
-};
-const mp_odrf_error_t	mp_odrf_error_function_or_derivative_value_invalid = {
-  .code		= MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID,
-  .description	= "function or derivative value is not finite or not a number"
-};
+const char *
+mp_odrf_strerror (mp_odrf_code_t code)
+{
+  switch (code) {
+  case MP_ODRF_OK:
+    return "no error";
+  case MP_ODRF_ERROR_NO_MEMORY_FOR_STATE_STRUCT:
+    return "failed to allocate space for root solver state";
+  case MP_ODRF_ERROR_INVALID_BRACKET_INTERVAL:
+    return "invalid bracket interval (lower > upper)";
+  case MP_ODRF_ERROR_RELATIVE_TOLERANCE_IS_NEGATIVE:
+    return "relative tolerance is negative";
+  case MP_ODRF_ERROR_ABSOLUTE_TOLERANCE_IS_NEGATIVE:
+    return "absolute tolerance is negative";
+  case MP_ODRF_ERROR_LOWER_BOUND_LARGER_THAN_UPPER_BOUND:
+    return "lower bound larger than upper bound";
+  case MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE:
+    return "endpoints do not straddle y=0";
+  case MP_ODRF_ERROR_FUNCTION_VALUE_IS_NOT_FINITE:
+    return "function value is not finite";
+  case MP_ODRF_ERROR_DERIVATIVE_IS_ZERO:
+    return "derivative is zero";
+  case MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID:
+    return "function or derivative value is not finite or not a number";
+  default:
+    return "unknown or invalid error code";
+  }
+}
 
 /* end of file */

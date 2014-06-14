@@ -55,39 +55,35 @@ newton_final (void * driver_state)
   mpfr_clear(state->f);
   mpfr_clear(state->df);
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 newton_set (void * driver_state,
 	    mp_odrf_mpfr_function_fdf_t * FDF,
-	    mpfr_ptr initial_guess,
-	    const mp_odrf_error_t ** EE)
+	    mpfr_ptr initial_guess)
 {
   newton_state_t *		state	= driver_state;
-  return MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF, initial_guess, state->f, state->df, EE);
+  return MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF, state->df, state->f, initial_guess);
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 newton_iterate (void * driver_state,
 		mp_odrf_mpfr_function_fdf_t * FDF,
-		mpfr_ptr root,
-		const mp_odrf_error_t ** EE)
+		mpfr_ptr root)
 {
-  mp_odrf_operation_code_t	retval	= MP_ODRF_OK;
-  newton_state_t *		state	= driver_state;
-  mpfr_t			tmp1, tmp2;
+  mp_odrf_code_t	retval	= MP_ODRF_OK;
+  newton_state_t *	state	= driver_state;
+  mpfr_t		tmp1, tmp2;
   mpfr_init(tmp1);
   mpfr_init(tmp2);
   {
     if (mpfr_zero_p(state->df)) {
-      retval = MP_ODRF_ERROR;
-      *EE    = &mp_odrf_error_derivative_is_zero;
+      retval = MP_ODRF_ERROR_DERIVATIVE_IS_ZERO;
     } else {
       mpfr_div(tmp1, state->f, state->df, GMP_RNDN);
       mpfr_sub(tmp2, root, tmp1, GMP_RNDN);
       mpfr_set(root, tmp2, GMP_RNDN);
-      retval = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF, root, state->f, state->df, EE);
+      retval = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF, state->df, state->f, root);
       if (MP_ODRF_OK == retval) {
 	if ((!mpfr_number_p(state->f)) || (!mpfr_number_p(state->df))) {
-	  retval = MP_ODRF_ERROR;
-	  *EE    = &mp_odrf_error_function_or_derivative_value_invalid;
+	  retval = MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID;
 	}
       }
     }

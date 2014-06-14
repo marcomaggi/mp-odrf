@@ -57,12 +57,11 @@ bisection_final (void * driver_state)
   mpfr_clear(state->y_lower);
   mpfr_clear(state->y_upper);
 }
-static mp_odrf_operation_code_t
+static mp_odrf_code_t
 bisection_set (void * driver_state, mp_odrf_mpfr_function_t * f,
-	       mpfr_ptr root, mpfr_ptr x_lower, mpfr_ptr x_upper,
-	       const mp_odrf_error_t ** EE)
+	       mpfr_ptr root, mpfr_ptr x_lower, mpfr_ptr x_upper)
 {
-  mp_odrf_operation_code_t	retval = MP_ODRF_OK;
+  mp_odrf_code_t	retval = MP_ODRF_OK;
   {
     mpfr_t	tmp;
     mpfr_init(tmp);
@@ -76,29 +75,27 @@ bisection_set (void * driver_state, mp_odrf_mpfr_function_t * f,
   {
     bisection_state_t *	state = driver_state;
     int			clo, cup;
-    SAFE_FUNC_CALL(EE, retval, f, x_lower, state->y_lower);
+    SAFE_FUNC_CALL(retval, f, x_lower, state->y_lower);
     if (MP_ODRF_OK == retval) {
-      SAFE_FUNC_CALL(EE, retval, f, x_upper, state->y_upper);
+      SAFE_FUNC_CALL(retval, f, x_upper, state->y_upper);
       if (MP_ODRF_OK == retval) {
 	clo = mpfr_cmp_si(state->y_lower, 0);
 	cup = mpfr_cmp_si(state->y_upper, 0);
 	if (((clo < 0) && (cup < 0)) ||
 	    ((clo > 0) && (cup > 0))) {
-	  *EE = &mp_odrf_error_endpoints_do_not_straddle;
-	  retval = MP_ODRF_ERROR;
+	  retval = MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE;
 	}
       }
     }
   }
   return retval;
 }
-static mp_odrf_operation_code_t
+static mp_odrf_code_t
 bisection_iterate (void * driver_state, mp_odrf_mpfr_function_t * f,
-		   mpfr_t root, mpfr_t x_lower, mpfr_t x_upper,
-		   const mp_odrf_error_t ** EE)
+		   mpfr_t root, mpfr_t x_lower, mpfr_t x_upper)
 {
-  mp_odrf_operation_code_t	retval	= MP_ODRF_OK;
-  bisection_state_t *		state	= driver_state;
+  mp_odrf_code_t	retval	= MP_ODRF_OK;
+  bisection_state_t *	state	= driver_state;
   if (mpfr_zero_p(state->y_lower)) {
     mpfr_set(root,    x_lower, GMP_RNDN);
     mpfr_set(x_upper, x_lower, GMP_RNDN);
@@ -114,7 +111,7 @@ bisection_iterate (void * driver_state, mp_odrf_mpfr_function_t * f,
     {
       mpfr_add(tmp, x_lower, x_upper, GMP_RNDN);
       mpfr_mul_d(x_bisect, tmp, 0.5, GMP_RNDN);
-      SAFE_FUNC_CALL(EE, retval, f, x_bisect, y_bisect);
+      SAFE_FUNC_CALL(retval, f, x_bisect, y_bisect);
       if (MP_ODRF_OK == retval) {
 	if (mpfr_zero_p(y_bisect)) {
 	  mpfr_set(root,    x_bisect, GMP_RNDN);

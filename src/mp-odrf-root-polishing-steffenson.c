@@ -65,17 +65,15 @@ steffenson_final (void * driver_state)
   mpfr_clear(state->x_1);
   mpfr_clear(state->x_2);
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 steffenson_set (void * driver_state,
-		mp_odrf_mpfr_function_fdf_t * FDF,
-		mpfr_ptr initial_guess,
-		const mp_odrf_error_t ** EE)
+		mp_odrf_mpfr_function_fdf_t * FDF, mpfr_ptr initial_guess)
 {
-  mp_odrf_operation_code_t	retval	= MP_ODRF_OK;
-  steffenson_state_t *		state	= driver_state;
-  retval = MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF, state->f, initial_guess, EE);
+  mp_odrf_code_t	retval	= MP_ODRF_OK;
+  steffenson_state_t *	state	= driver_state;
+  retval = MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF, state->f, initial_guess);
   if (MP_ODRF_OK == retval) {
-    retval = MP_ODRF_MPFR_FN_FDF_EVAL_DF(FDF, state->df, initial_guess, EE);
+    retval = MP_ODRF_MPFR_FN_FDF_EVAL_DF(FDF, state->df, initial_guess);
     if (MP_ODRF_OK == retval) {
       mpfr_set(state->x, initial_guess, GMP_RNDN);
       mpfr_set_si(state->x_1, 0, GMP_RNDN);
@@ -85,17 +83,14 @@ steffenson_set (void * driver_state,
   }
   return retval;
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 steffenson_iterate (void * driver_state,
-		    mp_odrf_mpfr_function_fdf_t * FDF,
-		    mpfr_ptr root,
-		    const mp_odrf_error_t ** EE)
+		    mp_odrf_mpfr_function_fdf_t * FDF, mpfr_ptr root)
 {
-  mp_odrf_operation_code_t	retval	= MP_ODRF_OK;
-  steffenson_state_t *		state	= driver_state;
+  mp_odrf_code_t	retval	= MP_ODRF_OK;
+  steffenson_state_t *	state	= driver_state;
   if (mpfr_zero_p(state->df)) {
-    retval = MP_ODRF_ERROR;
-    *EE    = &mp_odrf_error_derivative_is_zero;
+    retval = MP_ODRF_ERROR_DERIVATIVE_IS_ZERO;
   } else {
     mpfr_t	X_new, F_new, DF_new;
     mpfr_t	tmp1, tmp2;
@@ -107,7 +102,7 @@ steffenson_iterate (void * driver_state,
     {
       mpfr_div(tmp1, state->f, state->df, GMP_RNDN);
       mpfr_sub(X_new, state->x, tmp1, GMP_RNDN);
-      retval = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF, X_new, F_new, DF_new, EE);
+      retval = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF, DF_new, F_new, X_new);
       if (MP_ODRF_OK == retval) {
 	mpfr_set(state->x_2, state->x_1, GMP_RNDN);
 	mpfr_set(state->x_1, state->x,   GMP_RNDN);
@@ -115,8 +110,7 @@ steffenson_iterate (void * driver_state,
 	mpfr_set(state->f,   F_new,      GMP_RNDN);
 	mpfr_set(state->df,  DF_new,     GMP_RNDN);
 	if (!mpfr_number_p(F_new)) {
-	  retval = MP_ODRF_ERROR;
-	  *EE    = &mp_odrf_error_function_or_derivative_value_invalid;
+	  retval = MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID;
 	} else {
 	  if (state->count < 3) {
 	    mpfr_set(root, X_new, GMP_RNDN);
@@ -142,8 +136,7 @@ steffenson_iterate (void * driver_state,
 	    mpfr_clear(v);
 	  }
 	  if (!mpfr_number_p(DF_new)) {
-	    retval = MP_ODRF_ERROR;
-	    *EE    = &mp_odrf_error_function_or_derivative_value_invalid;
+	    retval = MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID;
 	  }
 	}
       }

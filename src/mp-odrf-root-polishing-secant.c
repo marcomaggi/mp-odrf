@@ -55,26 +55,22 @@ secant_final (void * driver_state)
   mpfr_clear(state->f);
   mpfr_clear(state->df);
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 secant_set (void * driver_state,
 	    mp_odrf_mpfr_function_fdf_t * FDF,
-	    mpfr_ptr initial_guess,
-	    const mp_odrf_error_t ** EE)
+	    mpfr_ptr initial_guess)
 {
   secant_state_t *		state	= driver_state;
-  return MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF, initial_guess, state->f, state->df, EE);
+  return MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF, state->df, state->f, initial_guess);
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 secant_iterate (void * driver_state,
-		mp_odrf_mpfr_function_fdf_t * FDF,
-		mpfr_ptr root,
-		const mp_odrf_error_t ** EE)
+		mp_odrf_mpfr_function_fdf_t * FDF, mpfr_ptr root)
 {
-  mp_odrf_operation_code_t	retval	= MP_ODRF_OK;
-  secant_state_t *		state	= driver_state;
+  mp_odrf_code_t	retval	= MP_ODRF_OK;
+  secant_state_t *	state	= driver_state;
   if (mpfr_zero_p(state->df)) {
-    retval = MP_ODRF_ERROR;
-    *EE    = &mp_odrf_error_derivative_is_zero;
+    retval = MP_ODRF_ERROR_DERIVATIVE_IS_ZERO;
   } else {
     mpfr_t	F_new, DF_new, X_new;
     mpfr_t	deltaF, deltaX;
@@ -87,7 +83,7 @@ secant_iterate (void * driver_state,
       mpfr_div(deltaF, state->f, state->df, GMP_RNDN);
       mpfr_sub(X_new, root, deltaF, GMP_RNDN);
       /* F_new = F(X_new) */
-      retval = MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF, F_new, X_new, EE);
+      retval = MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF, F_new, X_new);
       if (MP_ODRF_OK == retval) {
 	/* Compute the incremental ratio of F. */
 	{
@@ -102,8 +98,7 @@ secant_iterate (void * driver_state,
 	mpfr_set(state->f,   F_new, GMP_RNDN);
 	mpfr_set(state->df, DF_new, GMP_RNDN);
 	if ((!mpfr_number_p(F_new)) || (!mpfr_number_p(DF_new))) {
-	  retval = MP_ODRF_ERROR;
-	  *EE    = &mp_odrf_error_function_or_derivative_value_invalid;
+	  retval = MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID;
 	}
       }
     }

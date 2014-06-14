@@ -39,30 +39,27 @@
  ** Root bracketing solver API.
  ** ----------------------------------------------------------------- */
 
-const mp_odrf_error_t *
-mp_odrf_mpfr_root_fsolver_alloc (mp_odrf_mpfr_root_fsolver_t ** SS,
-				 const mp_odrf_mpfr_root_fsolver_driver_t * T)
+mp_odrf_mpfr_root_fsolver_t *
+mp_odrf_mpfr_root_fsolver_alloc (const mp_odrf_mpfr_root_fsolver_driver_t * T)
 /* Allocate and initialise a new root bracketing state struct to use the
    selected algorithm driver. */
 {
   mp_odrf_mpfr_root_fsolver_t * S = malloc(sizeof(mp_odrf_mpfr_root_fsolver_t));
-  if (NULL == S)
-    goto error;
-  S->driver_state = malloc(T->driver_state_size);
-  if (NULL == S->driver_state) {
-    free(S);
-    goto error;
+  if (NULL != S) {
+    S->driver_state = malloc(T->driver_state_size);
+    if (NULL != S->driver_state) {
+      T->init(S->driver_state);
+      S->driver		= T;
+      S->function	= NULL;
+      mpfr_init(S->root);
+      mpfr_init(S->x_lower);
+      mpfr_init(S->x_upper);
+    } else {
+      free(S);
+      S = NULL;
+    }
   }
-  T->init(S->driver_state);
-  S->driver	= T;
-  S->function	= NULL;
-  mpfr_init(S->root);
-  mpfr_init(S->x_lower);
-  mpfr_init(S->x_upper);
-  *SS = S;
-  return NULL;
- error:
-  return &mp_odrf_error_no_memory;
+  return S;
 }
 void
 mp_odrf_mpfr_root_fsolver_free (mp_odrf_mpfr_root_fsolver_t * S)
@@ -75,18 +72,16 @@ mp_odrf_mpfr_root_fsolver_free (mp_odrf_mpfr_root_fsolver_t * S)
   free(S->driver_state);
   free(S);
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 mp_odrf_mpfr_root_fsolver_set (mp_odrf_mpfr_root_fsolver_t * S,
 			       mp_odrf_mpfr_function_t * F,
-			       mpfr_t x_lower, mpfr_t x_upper,
-			       const mp_odrf_error_t ** EE)
+			       mpfr_t x_lower, mpfr_t x_upper)
 /* Select the  math function to be  searched for roots for  a given root
    bracketing state struct.  Also selects the search bracket. */
 {
-  mp_odrf_operation_code_t	retval = MP_ODRF_OK;
+  mp_odrf_code_t	retval = MP_ODRF_OK;
   if (mpfr_greater_p(x_lower, x_upper)) {
-    *EE = &mp_odrf_error_invalid_bracket_interval;
-    retval = MP_ODRF_ERROR;
+    retval = MP_ODRF_ERROR_INVALID_BRACKET_INTERVAL;
   } else {
     S->function = F;
     {
@@ -101,17 +96,16 @@ mp_odrf_mpfr_root_fsolver_set (mp_odrf_mpfr_root_fsolver_t * S,
     }
     mpfr_set(S->x_lower, x_lower, GMP_RNDD);
     mpfr_set(S->x_upper, x_upper, GMP_RNDU);
-    retval = (S->driver->set)(S->driver_state, S->function, S->root, x_lower, x_upper, EE);
+    retval = (S->driver->set)(S->driver_state, S->function, S->root, x_lower, x_upper);
   }
   return retval;
 }
-mp_odrf_operation_code_t
-mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * S,
-				   const mp_odrf_error_t ** EE)
+mp_odrf_code_t
+mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * S)
 /* Perform a search iteration for a root bracketing state struct. */
 {
   return (S->driver->iterate) (S->driver_state, S->function, S->root,
-			       S->x_lower, S->x_upper, EE);
+			       S->x_lower, S->x_upper);
 }
 const char *
 mp_odrf_mpfr_root_fsolver_name (const mp_odrf_mpfr_root_fsolver_t * S)
@@ -143,28 +137,25 @@ mp_odrf_mpfr_root_fsolver_x_upper (const mp_odrf_mpfr_root_fsolver_t * S)
  ** Root polishing solver API.
  ** ----------------------------------------------------------------- */
 
-const mp_odrf_error_t *
-mp_odrf_mpfr_root_fdfsolver_alloc (mp_odrf_mpfr_root_fdfsolver_t ** SS,
-				   const mp_odrf_mpfr_root_fdfsolver_driver_t * T)
+mp_odrf_mpfr_root_fdfsolver_t *
+mp_odrf_mpfr_root_fdfsolver_alloc (const mp_odrf_mpfr_root_fdfsolver_driver_t * T)
 /* Allocate and initialise a new root  polishing state struct to use the
    selected algorithm driver. */
 {
   mp_odrf_mpfr_root_fdfsolver_t * S = malloc(sizeof(mp_odrf_mpfr_root_fdfsolver_t));
-  if (NULL == S)
-    goto error;
-  S->driver_state = malloc(T->driver_state_size);
-  if (NULL == S->driver_state) {
-    free(S);
-    goto error;
+  if (NULL != S) {
+    S->driver_state = malloc(T->driver_state_size);
+    if (NULL != S->driver_state) {
+      T->init(S->driver_state);
+      S->driver	= T;
+      S->fdf	= NULL;
+      mpfr_init(S->root);
+    } else {
+      free(S);
+      S = NULL;
+    }
   }
-  T->init(S->driver_state);
-  S->driver	= T;
-  S->fdf	= NULL;
-  mpfr_init(S->root);
-  *SS = S;
-  return NULL;
- error:
-  return &mp_odrf_error_no_memory;
+  return S;
 }
 void
 mp_odrf_mpfr_root_fdfsolver_free (mp_odrf_mpfr_root_fdfsolver_t * S)
@@ -175,24 +166,22 @@ mp_odrf_mpfr_root_fdfsolver_free (mp_odrf_mpfr_root_fdfsolver_t * S)
   free(S->driver_state);
   free(S);
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 mp_odrf_mpfr_root_fdfsolver_set (mp_odrf_mpfr_root_fdfsolver_t * S,
 				 mp_odrf_mpfr_function_fdf_t * F,
-				 mpfr_t root,
-				 const mp_odrf_error_t ** EE)
+				 mpfr_t root)
 /* Select the  math function to be  searched for roots for  a given root
    polishing state struct.  Also selects the initial solution guess. */
 {
   S->fdf = F;
   mpfr_set(S->root, root, GMP_RNDN);
-  return (S->driver->set)(S->driver_state, S->fdf, S->root, EE);
+  return (S->driver->set)(S->driver_state, S->fdf, S->root);
 }
-mp_odrf_operation_code_t
-mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver_t * S,
-				     const mp_odrf_error_t ** EE)
+mp_odrf_code_t
+mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver_t * S)
 /* Perform a search iteration for a root polishing state struct. */
 {
-  return (S->driver->iterate) (S->driver_state, S->fdf, S->root, EE);
+  return (S->driver->iterate) (S->driver_state, S->fdf, S->root);
 }
 const char *
 mp_odrf_mpfr_root_fdfsolver_name (const mp_odrf_mpfr_root_fdfsolver_t * S)
@@ -212,27 +201,23 @@ mp_odrf_mpfr_root_fdfsolver_root (const mp_odrf_mpfr_root_fdfsolver_t * S)
  ** Convergence tests API.
  ** ----------------------------------------------------------------- */
 
-mp_odrf_operation_code_t
+mp_odrf_code_t
 mp_odrf_mpfr_root_test_interval (mpfr_ptr x_lower, mpfr_ptr x_upper,
-				 mpfr_ptr epsabs,  mpfr_ptr epsrel,
-				 const mp_odrf_error_t ** EE)
+				 mpfr_ptr epsabs,  mpfr_ptr epsrel)
 {
-  mp_odrf_operation_code_t	retval = MP_ODRF_CONTINUE;
-  mpfr_t			abs_lower;
-  mpfr_t			abs_upper;
-  mpfr_t			min_abs;
-  mpfr_t			tolerance;
-  mpfr_t			tmp;
-  int				clo, cup;
+  mp_odrf_code_t	retval = MP_ODRF_CONTINUE;
+  mpfr_t		abs_lower;
+  mpfr_t		abs_upper;
+  mpfr_t		min_abs;
+  mpfr_t		tolerance;
+  mpfr_t		tmp;
+  int			clo, cup;
   if (mpfr_cmp_si(epsrel, 0) < 0) {
-    *EE		= &mp_odrf_error_relative_tolerance_is_negative;
-    retval	= MP_ODRF_ERROR;
+    retval	= MP_ODRF_ERROR_RELATIVE_TOLERANCE_IS_NEGATIVE;
   } else if (mpfr_cmp_si(epsabs, 0) < 0) {
-    *EE		= &mp_odrf_error_absolute_tolerance_is_negative;
-    retval	= MP_ODRF_ERROR;
+    retval	= MP_ODRF_ERROR_ABSOLUTE_TOLERANCE_IS_NEGATIVE;
   } else if (mpfr_greater_p(x_lower, x_upper)) {
-    *EE		= &mp_odrf_error_lower_bound_larger_than_upper_bound;
-    retval	= MP_ODRF_ERROR;
+    retval	= MP_ODRF_ERROR_LOWER_BOUND_LARGER_THAN_UPPER_BOUND;
   } else {
     mpfr_init(tmp);
     mpfr_init(abs_lower);
@@ -266,18 +251,15 @@ mp_odrf_mpfr_root_test_interval (mpfr_ptr x_lower, mpfr_ptr x_upper,
   }
   return retval;
 }
-mp_odrf_operation_code_t
+mp_odrf_code_t
 mp_odrf_mpfr_root_test_delta (mpfr_ptr x1, mpfr_ptr x0,
-			      mpfr_ptr epsabs, mpfr_ptr epsrel,
-			      const mp_odrf_error_t ** EE)
+			      mpfr_ptr epsabs, mpfr_ptr epsrel)
 {
-  mp_odrf_operation_code_t	retval = MP_ODRF_CONTINUE;
+  mp_odrf_code_t	retval = MP_ODRF_CONTINUE;
   if (mpfr_cmp_si(epsrel, 0) < 0) {
-    *EE		= &mp_odrf_error_relative_tolerance_is_negative;
-    retval	= MP_ODRF_ERROR;
+    retval	= MP_ODRF_ERROR_RELATIVE_TOLERANCE_IS_NEGATIVE;
   } else if (mpfr_cmp_si(epsabs, 0) < 0) {
-    *EE		= &mp_odrf_error_absolute_tolerance_is_negative;
-    retval	= MP_ODRF_ERROR;
+    retval	= MP_ODRF_ERROR_ABSOLUTE_TOLERANCE_IS_NEGATIVE;
   } else if (0 == mpfr_cmp(x1, x0)) {
     retval	= MP_ODRF_OK;
   } else {
@@ -300,14 +282,12 @@ mp_odrf_mpfr_root_test_delta (mpfr_ptr x1, mpfr_ptr x0,
   }
   return retval;
 }
-mp_odrf_operation_code_t
-mp_odrf_mpfr_root_test_residual (mpfr_ptr f, mpfr_ptr epsabs,
-				 const mp_odrf_error_t ** EE)
+mp_odrf_code_t
+mp_odrf_mpfr_root_test_residual (mpfr_ptr f, mpfr_ptr epsabs)
 {
-  mp_odrf_operation_code_t	retval = MP_ODRF_CONTINUE;
+  mp_odrf_code_t	retval = MP_ODRF_CONTINUE;
   if (mpfr_cmp_si(epsabs, 0) < 0) {
-    *EE		= &mp_odrf_error_absolute_tolerance_is_negative;
-    retval	= MP_ODRF_ERROR;
+    retval	= MP_ODRF_ERROR_ABSOLUTE_TOLERANCE_IS_NEGATIVE;
   } else {
     mpfr_t	tmp;
     mpfr_init(tmp);

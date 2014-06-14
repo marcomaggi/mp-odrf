@@ -41,9 +41,8 @@ parameters_final (parameters_t * params)
   mpfr_clear(params->ell);
 }
 
-static mp_odrf_operation_code_t
-function (mpfr_ptr Y, mpfr_ptr X, void * params_,
-          const mp_odrf_error_t ** EE)
+static int
+function (mpfr_ptr Y, mpfr_ptr X, void * params_)
 {
   mpfr_t        tmp;
   parameters_t *params = params_;
@@ -58,9 +57,8 @@ function (mpfr_ptr Y, mpfr_ptr X, void * params_,
   return MP_ODRF_OK;
 }
 
-static mp_odrf_operation_code_t
-derivative (mpfr_ptr DY, mpfr_ptr X, void * params_,
-            const mp_odrf_error_t ** EE)
+static int
+derivative (mpfr_ptr DY, mpfr_ptr X, void * params_)
 {
   mpfr_t        tmp1, tmp2;
   parameters_t *params = params_;
@@ -78,10 +76,9 @@ derivative (mpfr_ptr DY, mpfr_ptr X, void * params_,
   return MP_ODRF_OK;
 }
 
-mp_odrf_operation_code_t
-function_and_derivative (mpfr_ptr X, void * params_,
-                         mpfr_ptr Y, mpfr_ptr DY,
-                         const mp_odrf_error_t ** EE)
+static int
+function_and_derivative (mpfr_ptr DY, mpfr_ptr Y,
+			 mpfr_ptr X, void * params_)
 {
   mpfr_t        tmp;
   parameters_t *params = params_;
@@ -112,8 +109,7 @@ main (int argc MP_ODRF_UNUSED, char * argv [])
     .params     = &params
   };
   double                        x = 2.4;
-  const mp_odrf_error_t *       E;
-  mp_odrf_operation_code_t      rv;
+  int                           rv;
 
   parameters_init(&params);
   mpfr_init(DY);
@@ -121,16 +117,16 @@ main (int argc MP_ODRF_UNUSED, char * argv [])
   mpfr_init(X);
   {
     mpfr_set_d(X, 2.4, GMP_RNDN);
-    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(&FDF, X, Y, DY, &E);
+    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(&FDF, DY, Y, X);
     mpfr_fprintf(stderr,
                  "%s: y = %20RNf, dy = %20RNf, should be %f and %f\n",
                  argv[0], Y, DY,
                  (exp(2.0 * x)),
                  (2.0 * exp(2.0 * x)));
-    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, Y, X, &E);
+    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, Y, X);
     mpfr_fprintf(stderr, "%s: y  = %20RNf\n", argv[0], Y);
-    rv = MP_ODRF_MPFR_FN_FDF_EVAL_DF(&FDF, DY, X, &E);
-    mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], DY, &E);
+    rv = MP_ODRF_MPFR_FN_FDF_EVAL_DF(&FDF, DY, X);
+    mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], DY);
   }
   mpfr_clear(X);
   mpfr_clear(Y);

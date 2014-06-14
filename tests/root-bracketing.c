@@ -174,14 +174,13 @@ test_with_interval_criterion (bracket_meta_data_t data)
   mpfr_t			x_lower, x_upper;
   mpfr_t			epsabs, epsrel;
   mpfr_ptr			result;
-  const mp_odrf_error_t *	E;
-  mp_odrf_operation_code_t	rv;
+  int				rv;
   mp_odrf_mpfr_function_t	F = {
     .function	= data->function,
     .params	= NULL
   };
   start("interval criterion", data->description);
-  E = mp_odrf_mpfr_root_fsolver_alloc(&solver, data->driver);
+  solver = mp_odrf_mpfr_root_fsolver_alloc(data->driver);
   if (NULL == solver) {
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -197,16 +196,16 @@ test_with_interval_criterion (bracket_meta_data_t data)
     mpfr_set_d(epsabs, 1e-6, GMP_RNDN);
     mpfr_set_d(epsrel, 0.0001, GMP_RNDN);
 
-    rv = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper, &E);
-    validate(MP_ODRF_OK == rv, "error setting: %s", E->description);
+    rv = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper);
+    validate(MP_ODRF_OK == rv, "error setting: %s", mp_odrf_strerror(rv));
     if (MP_ODRF_OK != rv) goto end;
     if (VERBOSE)
       mpfr_fprintf(stderr, "\n- start interval\t[%30Rf, %30Rf]\n",
 		   mp_odrf_mpfr_root_fsolver_x_lower(solver),
 		   mp_odrf_mpfr_root_fsolver_x_upper(solver));
     do {
-      rv = mp_odrf_mpfr_root_fsolver_iterate(solver, &E);
-      validate(MP_ODRF_OK == rv, "error iterating: %s", E->description);
+      rv = mp_odrf_mpfr_root_fsolver_iterate(solver);
+      validate(MP_ODRF_OK == rv, "error iterating: %s", mp_odrf_strerror(rv));
       if (MP_ODRF_OK != rv) goto end;
 
       if (1 == VERBOSE) {
@@ -216,14 +215,14 @@ test_with_interval_criterion (bracket_meta_data_t data)
       }
       rv = mp_odrf_mpfr_root_test_interval (mp_odrf_mpfr_root_fsolver_x_lower(solver),
 					    mp_odrf_mpfr_root_fsolver_x_upper(solver),
-					    epsabs, epsrel, &E);
+					    epsabs, epsrel);
       switch (rv) {
       case MP_ODRF_OK:
 	goto solved;
       case MP_ODRF_CONTINUE:
 	break;
       default:
-	error(E->description);
+	error(mp_odrf_strerror(rv));
 	goto end;
       }
     } while (MP_ODRF_CONTINUE == rv);
@@ -254,14 +253,13 @@ test_with_delta_criterion (bracket_meta_data_t data)
   mpfr_t			x_lower, x_upper;
   mpfr_t			epsabs, epsrel, x1;
   mpfr_ptr			result;
-  const mp_odrf_error_t *	E;
-  mp_odrf_operation_code_t	rv;
+  int				rv;
   mp_odrf_mpfr_function_t	F = {
     .function	= data->function,
     .params	= NULL
   };
   start("delta criterion", data->description);
-  E = mp_odrf_mpfr_root_fsolver_alloc(&solver, data->driver);
+  solver = mp_odrf_mpfr_root_fsolver_alloc(data->driver);
   if (NULL == solver) {
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -279,16 +277,16 @@ test_with_delta_criterion (bracket_meta_data_t data)
     mpfr_set_d(epsrel, 0.0001, GMP_RNDN);
     mpfr_set_d(x1, data->x_lower, GMP_RNDN);
 
-    rv = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper, &E);
-    validate(MP_ODRF_OK == rv, "error setting: %s", E->description);
+    rv = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper);
+    validate(MP_ODRF_OK == rv, "error setting: %s", mp_odrf_strerror(rv));
     if (MP_ODRF_OK != rv) goto end;
     if (VERBOSE)
       mpfr_fprintf(stderr, "\n- start interval\t[%30Rf, %30Rf]\n",
 		   mp_odrf_mpfr_root_fsolver_x_lower(solver),
 		   mp_odrf_mpfr_root_fsolver_x_upper(solver));
     do {
-      rv = mp_odrf_mpfr_root_fsolver_iterate(solver, &E);
-      validate(MP_ODRF_OK == rv, "error iterating: %s", E->description);
+      rv = mp_odrf_mpfr_root_fsolver_iterate(solver);
+      validate(MP_ODRF_OK == rv, "error iterating: %s", mp_odrf_strerror(rv));
       if (MP_ODRF_OK != rv) goto end;
 
       if (VERBOSE) {
@@ -299,7 +297,7 @@ test_with_delta_criterion (bracket_meta_data_t data)
 		     x1, mp_odrf_mpfr_root_fsolver_root(solver));
       }
       rv = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fsolver_root(solver),
-					epsabs, epsrel, &E);
+					epsabs, epsrel);
       switch (rv) {
       case MP_ODRF_OK:
 	goto solved;
@@ -307,7 +305,7 @@ test_with_delta_criterion (bracket_meta_data_t data)
 	mpfr_set(x1, mp_odrf_mpfr_root_fsolver_root(solver), GMP_RNDN);
 	break;
       default:
-	error(E->description);
+	error(mp_odrf_strerror(rv));
 	goto end;
       }
     } while (MP_ODRF_CONTINUE == rv);
@@ -339,14 +337,13 @@ test_with_residual_criterion (bracket_meta_data_t data)
   mpfr_t			x_lower, x_upper;
   mpfr_t			epsabs, residual;
   mpfr_ptr			result;
-  const mp_odrf_error_t *	E;
-  mp_odrf_operation_code_t	rv;
+  int				rv;
   mp_odrf_mpfr_function_t	F = {
     .function	= data->function,
     .params	= NULL
   };
   start("residual criterion", data->description);
-  E = mp_odrf_mpfr_root_fsolver_alloc(&solver, data->driver);
+  solver = mp_odrf_mpfr_root_fsolver_alloc(data->driver);
   if (NULL == solver) {
     perror("error initialising solver");
     exit(EXIT_FAILURE);
@@ -361,33 +358,33 @@ test_with_residual_criterion (bracket_meta_data_t data)
     mpfr_set_d(x_upper, data->x_upper, GMP_RNDN);
     mpfr_set_d(epsabs, 1e-6, GMP_RNDN);
 
-    rv = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper, &E);
-    validate(MP_ODRF_OK == rv, "error setting: %s", E->description);
+    rv = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper);
+    validate(MP_ODRF_OK == rv, "error setting: %s", mp_odrf_strerror(rv));
     if (MP_ODRF_OK != rv) goto end;
     if (VERBOSE)
       mpfr_fprintf(stderr, "\n- start interval\t[%30Rf, %30Rf]\n",
 		   mp_odrf_mpfr_root_fsolver_x_lower(solver),
 		   mp_odrf_mpfr_root_fsolver_x_upper(solver));
     do {
-      rv = mp_odrf_mpfr_root_fsolver_iterate(solver, &E);
-      validate(MP_ODRF_OK == rv, "error iterating: %s", E->description);
+      rv = mp_odrf_mpfr_root_fsolver_iterate(solver);
+      validate(MP_ODRF_OK == rv, "error iterating: %s", mp_odrf_strerror(rv));
       if (MP_ODRF_OK != rv) goto end;
 
-      MP_ODRF_MPFR_FN_EVAL(&F,residual,mp_odrf_mpfr_root_fsolver_root(solver), &E);
+      MP_ODRF_MPFR_FN_EVAL(&F,residual,mp_odrf_mpfr_root_fsolver_root(solver));
       if (VERBOSE) {
 	mpfr_fprintf(stderr, "- current interval\t[%30Rf, %30Rf]\n",
 		     mp_odrf_mpfr_root_fsolver_x_lower(solver),
 		     mp_odrf_mpfr_root_fsolver_x_upper(solver));
 	mpfr_fprintf(stderr, "- current residual: %Rf\n", residual);
       }
-      rv = mp_odrf_mpfr_root_test_residual(residual, epsabs, &E);
+      rv = mp_odrf_mpfr_root_test_residual(residual, epsabs);
       switch (rv) {
       case MP_ODRF_OK:
 	goto solved;
       case MP_ODRF_CONTINUE:
 	break;
       default:
-	error(E->description);
+	error(mp_odrf_strerror(rv));
 	goto end;
       }
     } while (MP_ODRF_CONTINUE == rv);
@@ -414,16 +411,14 @@ test_with_residual_criterion (bracket_meta_data_t data)
 /* We know  that the root is  at zero.  So  we will test the  result for
    zero. */
 
-static mp_odrf_operation_code_t
-sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_UNUSED,
-	       const mp_odrf_error_t ** E)
+static int
+sine_function (mpfr_t y, mpfr_t x, void * params_ MP_ODRF_UNUSED)
 {
   mpfr_sin(y, x, GMP_RNDN);
   return MP_ODRF_OK;
 }
-static mp_odrf_operation_code_t
-minus_sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_UNUSED,
-		     const mp_odrf_error_t ** E)
+static int
+minus_sine_function (mpfr_t y, mpfr_t x, void * params_ MP_ODRF_UNUSED)
 {
   mpfr_sin(y, x, GMP_RNDN);
   mpfr_neg(y, y, GMP_RNDN);

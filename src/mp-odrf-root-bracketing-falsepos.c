@@ -59,13 +59,12 @@ falsepos_final (void * driver_state)
   mpfr_clear(state->y_lower);
   mpfr_clear(state->y_upper);
 }
-static mp_odrf_operation_code_t
+static mp_odrf_code_t
 falsepos_set (void * driver_state, mp_odrf_mpfr_function_t * f,
-	       mpfr_ptr root, mpfr_ptr x_lower, mpfr_ptr x_upper,
-	       const mp_odrf_error_t ** EE)
+	      mpfr_ptr root, mpfr_ptr x_lower, mpfr_ptr x_upper)
 /* This is equal to "bisection_set()". */
 {
-  mp_odrf_operation_code_t	retval = MP_ODRF_OK;
+  mp_odrf_code_t	retval = MP_ODRF_OK;
   {
     mpfr_t	tmp;
     mpfr_init(tmp);
@@ -79,29 +78,27 @@ falsepos_set (void * driver_state, mp_odrf_mpfr_function_t * f,
   {
     falsepos_state_t *	state = driver_state;
     int			clo, cup;
-    SAFE_FUNC_CALL(EE, retval, f, x_lower, state->y_lower);
+    SAFE_FUNC_CALL(retval, f, x_lower, state->y_lower);
     if (MP_ODRF_OK == retval) {
-      SAFE_FUNC_CALL(EE, retval, f, x_upper, state->y_upper);
+      SAFE_FUNC_CALL(retval, f, x_upper, state->y_upper);
       if (MP_ODRF_OK == retval) {
 	clo = mpfr_cmp_si(state->y_lower, 0);
 	cup = mpfr_cmp_si(state->y_upper, 0);
 	if (((clo < 0) && (cup < 0)) ||
 	    ((clo > 0) && (cup > 0))) {
-	  *EE = &mp_odrf_error_endpoints_do_not_straddle;
-	  retval = MP_ODRF_ERROR;
+	  retval = MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE;
 	}
       }
     }
   }
   return retval;
 }
-static mp_odrf_operation_code_t
+static mp_odrf_code_t
 falsepos_iterate (void * driver_state, mp_odrf_mpfr_function_t * f,
-		  mpfr_t root, mpfr_t x_lower, mpfr_t x_upper,
-		  const mp_odrf_error_t ** EE)
+		  mpfr_t root, mpfr_t x_lower, mpfr_t x_upper)
 {
-  mp_odrf_operation_code_t	retval	= MP_ODRF_OK;
-  falsepos_state_t *		state	= driver_state;
+  mp_odrf_code_t	retval	= MP_ODRF_OK;
+  falsepos_state_t *	state	= driver_state;
   if (mpfr_zero_p(state->y_lower)) {
     mpfr_set(root,    x_lower, GMP_RNDN);
     mpfr_set(x_upper, x_lower, GMP_RNDN);
@@ -132,7 +129,7 @@ falsepos_iterate (void * driver_state, mp_odrf_mpfr_function_t * f,
       mpfr_mul(tmp1,     state->y_upper, tmp3,           GMP_RNDN);
       mpfr_sub(x_linear, x_upper,        tmp1,           GMP_RNDN);
 
-      SAFE_FUNC_CALL(EE, retval, f, x_linear, y_linear);
+      SAFE_FUNC_CALL(retval, f, x_linear, y_linear);
       if (MP_ODRF_OK != retval) {
 	goto end;
       }
@@ -163,7 +160,7 @@ falsepos_iterate (void * driver_state, mp_odrf_mpfr_function_t * f,
 	goto end;
       mpfr_add(tmp1, x_lower, x_upper, GMP_RNDN);
       mpfr_mul_d(x_bisect, tmp1, 0.5, GMP_RNDN);
-      SAFE_FUNC_CALL(EE, retval, f, x_bisect, y_bisect);
+      SAFE_FUNC_CALL(retval, f, x_bisect, y_bisect);
       if (MP_ODRF_OK != retval) {
 	goto end;
       }

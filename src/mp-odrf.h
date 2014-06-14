@@ -97,49 +97,35 @@ extern "C" {
 
 
 /** --------------------------------------------------------------------
- ** Constants.
+ ** Error handling.
  ** ----------------------------------------------------------------- */
 
 typedef enum {
-  MP_ODRF_OK,
-  MP_ODRF_ERROR,
-  MP_ODRF_CONTINUE
-} mp_odrf_operation_code_t;
+  MP_ODRF_CONTINUE					=   1,
+  MP_ODRF_OK						=   0,
+  MP_ODRF_ERROR						=  -1,
+  MP_ODRF_ERROR_NO_MEMORY_FOR_STATE_STRUCT		=  -2,
+  MP_ODRF_ERROR_INVALID_BRACKET_INTERVAL		=  -3,
+  MP_ODRF_ERROR_RELATIVE_TOLERANCE_IS_NEGATIVE		=  -4,
+  MP_ODRF_ERROR_ABSOLUTE_TOLERANCE_IS_NEGATIVE		=  -5,
+  MP_ODRF_ERROR_LOWER_BOUND_LARGER_THAN_UPPER_BOUND	=  -6,
+  MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE		=  -7,
+  MP_ODRF_ERROR_FUNCTION_VALUE_IS_NOT_FINITE		=  -8,
+  MP_ODRF_ERROR_DERIVATIVE_IS_ZERO			=  -9,
+  MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID	= -10,
+  MP_ODRF_NEGATIVE_ERROR_CODE_LIMIT			= -11
+} mp_odrf_code_t;
 
-typedef enum {
-  MP_ODRF_NO_ERROR = 0,
-  MP_ODRF_NO_MEMORY_FOR_STATE_STRUCT,
-  MP_ODRF_INVALID_BRACKET_INTERVAL,
-  MP_ODRF_RELATIVE_TOLERANCE_IS_NEGATIVE,
-  MP_ODRF_ABSOLUTE_TOLERANCE_IS_NEGATIVE,
-  MP_ODRF_LOWER_BOUND_LARGER_THAN_UPPER_BOUND,
-  MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE,
-  MP_ODRF_ERROR_FUNCTION_VALUE_IS_NOT_FINITE,
-  MP_ODRF_ERROR_DERIVATIVE_IS_ZERO,
-  MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID
-} mp_odrf_error_code_t;
-
-
-/** --------------------------------------------------------------------
- ** Error descriptors.
- ** ----------------------------------------------------------------- */
-
-typedef struct {
-  mp_odrf_error_code_t	code;
-  const char *		description;
-} mp_odrf_error_t;
+mp_odrf_decl const char * mp_odrf_strerror (mp_odrf_code_t code);
 
 
 /** --------------------------------------------------------------------
  ** MPFR type definitions: wrapped math functions.
  ** ----------------------------------------------------------------- */
 
-typedef mp_odrf_operation_code_t \
-  mp_odrf_mpfr_wrapped_f_t       (mpfr_ptr y, mpfr_ptr x, void * params,
-				     const mp_odrf_error_t ** E);
-typedef mp_odrf_operation_code_t \
-  mp_odrf_mpfr_wrapped_fdf_t (mpfr_ptr x, void * params, mpfr_ptr y, mpfr_ptr dy,
-				     const mp_odrf_error_t ** E);
+typedef int mp_odrf_mpfr_wrapped_f_t	(mpfr_ptr y, mpfr_ptr x, void * params);
+typedef int mp_odrf_mpfr_wrapped_fdf_t	(mpfr_ptr dy,
+					 mpfr_ptr y, mpfr_ptr x, void * params);
 
 typedef struct {
   mp_odrf_mpfr_wrapped_f_t *		function;
@@ -159,10 +145,9 @@ typedef struct {
    X and Y must have been already initialised.
 
    If  an  error  occurs  computing   the  function:  a  suitable  error
-   descriptor is stored  in the variable referenced by  EE; the argument
-   EE is of type "const mp_odrf_error_t **" */
-#define MP_ODRF_MPFR_FN_EVAL(F,Y,X,EE)			\
-  (((F)->function)((Y), (X), (F)->params, (EE)))
+   code must be returned. */
+#define MP_ODRF_MPFR_FN_EVAL(F,Y,X)			\
+  (((F)->function)((Y), (X), (F)->params))
 
 /* Given  the target  math  function  and its  derivative  wrapped in  a
    structure  FDF  of  type "mp_odrf_mpfr_function_fdf_t":  compute  the
@@ -170,11 +155,9 @@ typedef struct {
    the  ordinate "mpfr_ptr"  Y.  Both  X and  Y must  have been  already
    initialised.
 
-   If an  error occurs:  a suitable  error descriptor  is stored  in the
-   variable  referenced  by  EE;  the  argument EE  is  of  type  "const
-   mp_odrf_error_t **" */
-#define MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF,Y,X,EE)		\
-  (((FDF)->f) ((Y), (X), (FDF)->params, (EE)))
+   If an  error occurs:  a suitable  error code must be returned. */
+#define MP_ODRF_MPFR_FN_FDF_EVAL_F(FDF,Y,X)		\
+  (((FDF)->f) ((Y), (X), (FDF)->params))
 
 /* Given  the target  math  function  and its  derivative  wrapped in  a
    structure  FDF  of  type "mp_odrf_mpfr_function_fdf_t":  compute  the
@@ -182,11 +165,9 @@ typedef struct {
    in  the  "mpfr_ptr"  Y.   Both  X   and  Y  must  have  been  already
    initialised.
 
-   If an  error occurs:  a suitable  error descriptor  is stored  in the
-   variable  referenced  by  EE;  the  argument EE  is  of  type  "const
-   mp_odrf_error_t **" */
-#define MP_ODRF_MPFR_FN_FDF_EVAL_DF(FDF,DY,X,EE)	\
-  (((FDF)->df) ((DY), (X), (FDF)->params, (EE)))
+   If an  error occurs:  a suitable  error code must be returned. */
+#define MP_ODRF_MPFR_FN_FDF_EVAL_DF(FDF,DY,X)	\
+  (((FDF)->df) ((DY), (X), (FDF)->params))
 
 /* Given  the target  math  function  and its  derivative  wrapped in  a
    structure FDF of type "mp_odrf_mpfr_function_fdf_t": compute both the
@@ -195,11 +176,9 @@ typedef struct {
    Y; store the  derivative's value in the ordinate  "mpfr_ptr" DY.  All
    of X, Y and DY must have been already initialised.
 
-   If an  error occurs:  a suitable  error descriptor  is stored  in the
-   variable  referenced  by  EE;  the  argument EE  is  of  type  "const
-   mp_odrf_error_t **" */
-#define MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF,X,Y,DY,EE)	\
-  (((FDF)->fdf)((X), (FDF)->params, (Y), (DY), (EE)))
+   If an  error occurs:  a suitable  error code must be returned. */
+#define MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(FDF,DY,Y,X)	\
+  (((FDF)->fdf)((DY), (Y), (X), (FDF)->params))
 
 
 /** --------------------------------------------------------------------
@@ -209,22 +188,20 @@ typedef struct {
 /* Prototype of function used to compute  the value of the user supplied
    math  function to  be searched  for roots.   It is  used by  the root
    bracketing algorithm drivers, the client code should never use it. */
-typedef mp_odrf_operation_code_t \
+typedef mp_odrf_code_t \
   mp_odrf_mpfr_roots_f_fun_t (void * driver_state,
 			      mp_odrf_mpfr_function_t * F,
 			      mpfr_ptr root,
-			      mpfr_ptr x_lower, mpfr_ptr x_upper,
-			      const mp_odrf_error_t ** EE);
+			      mpfr_ptr x_lower, mpfr_ptr x_upper);
 
 /* Prototype of function used to compute  the value of the user supplied
    math function, and derivative, to be  searched for roots.  It is used
    by the root polishing algorithm drivers, the client code should never
    use it. */
-typedef mp_odrf_operation_code_t \
+typedef mp_odrf_code_t \
   mp_odrf_mpfr_roots_fdf_fun_t (void * driver_state,
 				mp_odrf_mpfr_function_fdf_t * FDF,
-				mpfr_ptr root,
-				const mp_odrf_error_t ** EE);
+				mpfr_ptr root);
 
 /* Prototype of function  used to initalise the state  of a root-finding
    problem.   It is  used by  the algorithm's  drivers, the  client code
@@ -294,25 +271,22 @@ typedef struct {
 
 /* Allocate and initialise a new root bracketing state struct to use the
    selected algorithm driver. */
-mp_odrf_decl const mp_odrf_error_t * \
-  mp_odrf_mpfr_root_fsolver_alloc (mp_odrf_mpfr_root_fsolver_t ** SS,
-				   const mp_odrf_mpfr_root_fsolver_driver_t * T);
+mp_odrf_decl mp_odrf_mpfr_root_fsolver_t * \
+  mp_odrf_mpfr_root_fsolver_alloc (const mp_odrf_mpfr_root_fsolver_driver_t * T);
 
 /* Finalise and release a root bracketing state struct. */
 mp_odrf_decl void mp_odrf_mpfr_root_fsolver_free (mp_odrf_mpfr_root_fsolver_t * S);
 
 /* Select the  math function to be  searched for roots for  a given root
    bracketing state struct.  Also selects the search bracket. */
-mp_odrf_decl mp_odrf_operation_code_t \
-  mp_odrf_mpfr_root_fsolver_set		(mp_odrf_mpfr_root_fsolver_t * S,
-					 mp_odrf_mpfr_function_t * f,
-					 mpfr_t x_lower, mpfr_t x_upper,
-					 const mp_odrf_error_t ** EE);
+mp_odrf_decl mp_odrf_code_t \
+  mp_odrf_mpfr_root_fsolver_set	(mp_odrf_mpfr_root_fsolver_t * S,
+				 mp_odrf_mpfr_function_t * f,
+				 mpfr_t x_lower, mpfr_t x_upper);
 
 /* Perform a search iteration for a root bracketing state struct. */
-mp_odrf_decl mp_odrf_operation_code_t \
-  mp_odrf_mpfr_root_fsolver_iterate	(mp_odrf_mpfr_root_fsolver_t * S,
-					 const mp_odrf_error_t ** EE);
+mp_odrf_decl mp_odrf_code_t \
+  mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * S);
 
 /* Inspect the current state of a root bracketing problem. */
 mp_odrf_decl const char * mp_odrf_mpfr_root_fsolver_name (const mp_odrf_mpfr_root_fsolver_t * S);
@@ -337,25 +311,22 @@ typedef struct {
 
 /* Allocate and initialise a new root  polishing state struct to use the
    selected algorithm driver. */
-mp_odrf_decl const mp_odrf_error_t * \
-  mp_odrf_mpfr_root_fdfsolver_alloc (mp_odrf_mpfr_root_fdfsolver_t ** SS,
-				     const mp_odrf_mpfr_root_fdfsolver_driver_t * T);
+mp_odrf_decl mp_odrf_mpfr_root_fdfsolver_t * \
+  mp_odrf_mpfr_root_fdfsolver_alloc (const mp_odrf_mpfr_root_fdfsolver_driver_t * T);
 
 /* Finalise and release a root polishing state struct. */
 mp_odrf_decl void mp_odrf_mpfr_root_fdfsolver_free (mp_odrf_mpfr_root_fdfsolver_t * S);
 
 /* Select the  math function to be  searched for roots for  a given root
    polishing state struct.  Also selects the initial solution guess. */
-mp_odrf_decl mp_odrf_operation_code_t \
+mp_odrf_decl mp_odrf_code_t \
   mp_odrf_mpfr_root_fdfsolver_set	(mp_odrf_mpfr_root_fdfsolver_t * S,
 					 mp_odrf_mpfr_function_fdf_t * fdf,
-					 mpfr_t root,
-					 const mp_odrf_error_t ** EE);
+					 mpfr_t root);
 
 /* Perform a search iteration for a root polishing state struct. */
-mp_odrf_decl mp_odrf_operation_code_t \
-  mp_odrf_mpfr_root_fdfsolver_iterate	(mp_odrf_mpfr_root_fdfsolver_t * S,
-					 const mp_odrf_error_t ** EE);
+mp_odrf_decl mp_odrf_code_t \
+  mp_odrf_mpfr_root_fdfsolver_iterate	(mp_odrf_mpfr_root_fdfsolver_t * S);
 
 /* Inspect the current state of a root polishing problem. */
 mp_odrf_decl const char * mp_odrf_mpfr_root_fdfsolver_name (const mp_odrf_mpfr_root_fdfsolver_t * S);
@@ -366,19 +337,16 @@ mp_odrf_decl mpfr_ptr mp_odrf_mpfr_root_fdfsolver_root (const mp_odrf_mpfr_root_
  ** MPFR functions: convergence tests.
  ** ----------------------------------------------------------------- */
 
-mp_odrf_decl mp_odrf_operation_code_t \
+mp_odrf_decl mp_odrf_code_t \
   mp_odrf_mpfr_root_test_interval	(mpfr_ptr x_lower, mpfr_ptr x_upper,
-					 mpfr_ptr epsabs,  mpfr_ptr epsrel,
-					 const mp_odrf_error_t ** EE);
+					 mpfr_ptr epsabs,  mpfr_ptr epsrel);
 
-mp_odrf_decl mp_odrf_operation_code_t \
+mp_odrf_decl mp_odrf_code_t \
   mp_odrf_mpfr_root_test_delta		(mpfr_ptr x1,     mpfr_ptr x0,
-					 mpfr_ptr epsabs, mpfr_ptr epsrel,
-					 const mp_odrf_error_t ** EE);
+					 mpfr_ptr epsabs, mpfr_ptr epsrel);
 
-mp_odrf_decl mp_odrf_operation_code_t \
-  mp_odrf_mpfr_root_test_residual	(mpfr_ptr f, mpfr_ptr epsabs,
-					 const mp_odrf_error_t ** EE);
+mp_odrf_decl mp_odrf_code_t \
+  mp_odrf_mpfr_root_test_residual	(mpfr_ptr f, mpfr_ptr epsabs);
 
 
 /** --------------------------------------------------------------------

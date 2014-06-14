@@ -50,9 +50,8 @@ parameters_final (parameters_t * params)
   mpfr_clear(params->c);
 }
 
-mp_odrf_operation_code_t
-function (mpfr_ptr Y, mpfr_ptr X, void * params_,
-          const mp_odrf_error_t ** EE)
+static int
+function (mpfr_ptr Y, mpfr_ptr X, void * params_)
 {
   mpfr_t        tmp1;
   mpfr_t        tmp2;
@@ -82,8 +81,7 @@ main (int argc MP_ODRF_UNUSED, char * argv [])
     .function = function,
     .params   = &params
   };
-  const mp_odrf_error_t *  E;
-  mp_odrf_operation_code_t rv;
+  int			   rv;
   double                   x = 2.4;
 
   parameters_init(&params);
@@ -91,7 +89,7 @@ main (int argc MP_ODRF_UNUSED, char * argv [])
   mpfr_init(X);
   {
     mpfr_set_d(X, 2.4, GMP_RNDN);
-    rv = MP_ODRF_MPFR_FN_EVAL(&F, Y, X, &E);
+    rv = MP_ODRF_MPFR_FN_EVAL(&F, Y, X);
     mpfr_fprintf(stderr,
       "%s: the function value is: %20RNf, should be close to: %f\n",
       argv[0], Y, (3.0 * x * x + 2.0 * x + 1.0));

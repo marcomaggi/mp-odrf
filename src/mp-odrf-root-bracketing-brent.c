@@ -68,25 +68,24 @@ brent_final (void * driver_state)
   mpfr_clear(state->fb);
   mpfr_clear(state->fc);
 }
-static mp_odrf_operation_code_t
+static mp_odrf_code_t
 brent_set (void * driver_state, mp_odrf_mpfr_function_t * f,
-	   mpfr_ptr root, mpfr_ptr x_lower, mpfr_ptr x_upper,
-	   const mp_odrf_error_t ** EE)
+	   mpfr_ptr root, mpfr_ptr x_lower, mpfr_ptr x_upper)
 {
-  mp_odrf_operation_code_t	retval = MP_ODRF_OK;
-  brent_state_t *		state = driver_state;
-  mpfr_t			y_lower, y_upper;
-  mpfr_t			tmp1;
-  int				clo, cup;
+  mp_odrf_code_t	retval = MP_ODRF_OK;
+  brent_state_t *	state = driver_state;
+  mpfr_t		y_lower, y_upper;
+  mpfr_t		tmp1;
+  int			clo, cup;
   mpfr_init(y_lower);
   mpfr_init(y_upper);
   mpfr_init(tmp1);
   {
     mpfr_add(tmp1, x_lower, x_upper, GMP_RNDN);
     mpfr_mul_d(root, tmp1, 0.5, GMP_RNDN);
-    SAFE_FUNC_CALL(EE, retval, f, x_lower, y_lower);
+    SAFE_FUNC_CALL(retval, f, x_lower, y_lower);
     if (MP_ODRF_OK == retval) {
-      SAFE_FUNC_CALL(EE, retval, f, x_upper, y_upper);
+      SAFE_FUNC_CALL(retval, f, x_upper, y_upper);
       if (MP_ODRF_OK == retval) {
 	mpfr_set(state->a,  x_lower, GMP_RNDN);
 	mpfr_set(state->fa, y_lower, GMP_RNDN);
@@ -100,8 +99,7 @@ brent_set (void * driver_state, mp_odrf_mpfr_function_t * f,
 	cup = mpfr_cmp_si(y_upper, 0);
 	if (((clo < 0) && (cup < 0)) ||
 	    ((clo > 0) && (cup > 0))) {
-	  *EE    = &mp_odrf_error_endpoints_do_not_straddle;
-	  retval = MP_ODRF_ERROR;
+	  retval = MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE;
 	}
       }
     }
@@ -111,16 +109,15 @@ brent_set (void * driver_state, mp_odrf_mpfr_function_t * f,
   mpfr_clear(tmp1);
   return retval;
 }
-static mp_odrf_operation_code_t
+static mp_odrf_code_t
 brent_iterate (void * driver_state, mp_odrf_mpfr_function_t * f,
-	       mpfr_t root, mpfr_t x_lower, mpfr_t x_upper,
-	       const mp_odrf_error_t ** EE)
+	       mpfr_t root, mpfr_t x_lower, mpfr_t x_upper)
 {
-  mp_odrf_operation_code_t	retval	= MP_ODRF_OK;
-  brent_state_t *		state = driver_state;
-  mpfr_t			tol, m;
-  mpfr_t			tmp1, tmp2, tmp3;
-  int				ac_equal = 0;
+  mp_odrf_code_t	retval	= MP_ODRF_OK;
+  brent_state_t *	state = driver_state;
+  mpfr_t		tol, m;
+  mpfr_t		tmp1, tmp2, tmp3;
+  int			ac_equal = 0;
 #define A	state->a
 #define B	state->b
 #define C	state->c
@@ -268,7 +265,7 @@ brent_iterate (void * driver_state, mp_odrf_mpfr_function_t * f,
 	mpfr_set(B, tmp1, GMP_RNDN);
       }
     }
-    SAFE_FUNC_CALL(EE, retval, f, B, FB);
+    SAFE_FUNC_CALL(retval, f, B, FB);
     if (MP_ODRF_OK != retval) {
       goto end;
     }

@@ -378,41 +378,42 @@ the function visually by plotting before searching for a root.
 @section Describing errors
 
 
-@deftp {Enum Typedef} mp_odrf_error_code_t
-Type of integers used to represent error codes.  The following symbols
-are defined:
+@deftp {Enum Typedef} mp_odrf_code_t
+Type of integers used to represent result conditions and error codes.
+The following symbols are defined:
 
 @table @code
-@item MP_ODRF_NO_ERROR
-Defined to be zero.
+@item MP_ODRF_CONTINUE
+Positive integer.  Used to signal that an iteration is allowed to go on
+with the next step.
 
-@item MP_ODRF_NO_MEMORY_FOR_STATE_STRUCT
-@item MP_ODRF_INVALID_BRACKET_INTERVAL
-@item MP_ODRF_RELATIVE_TOLERANCE_IS_NEGATIVE
-@item MP_ODRF_ABSOLUTE_TOLERANCE_IS_NEGATIVE
-@item MP_ODRF_LOWER_BOUND_LARGER_THAN_UPPER_BOUND
-@item MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE
-@item MP_ODRF_ERROR_FUNCTION_VALUE_IS_NOT_FINITE
-@item MP_ODRF_ERROR_DERIVATIVE_IS_ZERO
-@item MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID
+@item MP_ODRF_OK
+No error, successful operation.  It is defined to be @code{0}.
+
+@item MP_ODRF_ERROR
+Negative integer representing an error not signaled by @value{PACKAGE}.
+
+@item MP_ODRF_ERROR_NO_MEMORY_FOR_STATE_STRUCT
+@itemx MP_ODRF_ERROR_INVALID_BRACKET_INTERVAL
+@itemx MP_ODRF_ERROR_RELATIVE_TOLERANCE_IS_NEGATIVE
+@itemx MP_ODRF_ERROR_ABSOLUTE_TOLERANCE_IS_NEGATIVE
+@itemx MP_ODRF_ERROR_LOWER_BOUND_LARGER_THAN_UPPER_BOUND
+@itemx MP_ODRF_ERROR_ENDPOINTS_DO_NOT_STRADDLE
+@itemx MP_ODRF_ERROR_FUNCTION_VALUE_IS_NOT_FINITE
+@itemx MP_ODRF_ERROR_DERIVATIVE_IS_ZERO
+@itemx MP_ODRF_ERROR_FUNCTION_OR_DERIVATIVE_VALUE_INVALID
+Negative integers representing error causes.
+
+@item MP_ODRF_NEGATIVE_ERROR_CODE_LIMIT
+Negative integer being one less of the minimum defined error code.
 @end table
 @end deftp
 
 
-@deftp {Struct Typedef} mp_odrf_error_t
-Type of error descriptor structures.  These structures are usually
-statically allocated and never mutated.  It has the following fields:
-
-@table @code
-@item mp_odrf_error_code_t code
-An error code.
-
-@item const char * description
-Pointer to a (usually) statically allocate @asciiz{} string representing
-the textual description of an error.
-@end table
-@end deftp
-
+@deftypefun {const char *} mp_odrf_strerror (mp_odrf_code_t @var{code})
+Return a pointer to a statically allocated @asciiz{} string describing
+the error represented by @var{code}.
+@end deftypefun
 
 @c page
 @node one root init
@@ -437,16 +438,16 @@ bracketing problems using the bisection algorithm:
 #include <mp-odrf.h>
 
 const mp_odrf_mpfr_root_fsolver_driver_t *  T;
-const mp_odrf_error_t *        E;
-mp_odrf_mpfr_root_fsolver_t *  S;
+mp_odrf_mpfr_root_fsolver_t *   S;
 
 T = mp_odrf_mpfr_root_fsolver_bisection;
-E = mp_odrf_mpfr_root_fsolver_alloc (&S, T);
-if (NULL == E) @{
+S = mp_odrf_mpfr_root_fsolver_alloc (T);
+if (NULL != rv) @{
   /* do something here */
   mp_odrf_mpfr_root_fsolver_free(S);
 @} else @{
-  /* handle the error */
+  fprintf(stderr, "error: %s\n",
+    mp_odrf_strerror(MP_ODRF_ERROR_NO_MEMORY_FOR_STATE_STRUCT));
 @}
 @end example
 
@@ -456,10 +457,11 @@ Type of solver for root bracketing solvers.
 @end deftp
 
 
-@deftypefun {const mp_odrf_error_t *} mp_odrf_mpfr_root_fsolver_alloc (mp_odrf_mpfr_root_fsolver_t * @var{SS}, const mp_odrf_mpfr_root_fsolver_type * @var{T})
-Allocate a new instance of a solver of type @var{T} and store a pointer
-to it in the variable referenced by @var{SS}; if successful return
-@cnull{}, otherwise return a pointer to an error descriptor.
+@deftypefun {mp_odrf_mpfr_root_fsolver_t *} mp_odrf_mpfr_root_fsolver_alloc (const mp_odrf_mpfr_root_fsolver_type * @var{T})
+Allocate a new instance of a solver of type @var{T}; if successful
+return a pointer to the solver structurre, otherwise return @cnull{}.
+This function returns @cnull{} only when memory allocation through
+@cfunc{malloc} fails.
 @end deftypefun
 
 
@@ -468,14 +470,11 @@ Free all the memory associated with the solver @var{s}.
 @end deftypefun
 
 
-@deftypefun mp_odrf_operation_code_t mp_odrf_mpfr_root_fsolver_set (mp_odrf_mpfr_root_fsolver_t * @var{S}, mp_odrf_mpfr_function_t * @var{F}, mpfr_ptr @var{x_lower}, mpfr_ptr @var{x_upper}, const mp_odrf_error_t ** @var{EE})
+@deftypefun mp_odrf_code_t mp_odrf_mpfr_root_fsolver_set (mp_odrf_mpfr_root_fsolver_t * @var{S}, mp_odrf_mpfr_function_t * @var{F}, mpfr_ptr @var{x_lower}, mpfr_ptr @var{x_upper})
 Initialize, or reinitialize, an existing solver @var{S} to use the
 function @var{F} and the initial search interval @code{[@var{x_lower},
-@var{x_upper}]}.
-
-When successful return @code{MP_ODRF_OK} and leave @var{EE} untouched,
-if an error occurs return @code{MP_ODRF_ERROR} and store in the variable
-referenced by @var{EE} a pointer to an error descriptor.
+@var{x_upper}]}.  When successful return @code{MP_ODRF_OK}, otherwise
+return an error code.
 @end deftypefun
 
 
@@ -496,16 +495,16 @@ polishing problems using the Newton--Raphson algorithm:
 #include <mp-odrf.h>
 
 const mp_odrf_mpfr_root_fdfsolver_driver_t *  T;
-const mp_odrf_error_t *          E;
 mp_odrf_mpfr_root_fdfsolver_t *  S;
 
 T = mp_odrf_mpfr_root_fdfsolver_newton;
-E = mp_odrf_mpfr_root_fdfsolver_alloc (&S, T);
-if (NULL == E) @{
+S = mp_odrf_mpfr_root_fdfsolver_alloc (T);
+if (NULL != S) @{
   /* do something here */
   mp_odrf_mpfr_root_fdfsolver_free(S);
 @} else @{
-  /* handle the error */
+  fprintf(stderr, "error: %s\n",
+    mp_odrf_strerror(MP_ODRF_ERROR_NO_MEMORY_FOR_STATE_STRUCT));
 @}
 @end example
 
@@ -515,11 +514,11 @@ Type of solver for root polishing solvers.
 @end deftp
 
 
-@deftypefun {const mp_odrf_error_t *} mp_odrf_mpfr_root_fdfsolver_alloc (mp_odrf_mpfr_root_fdfsolver * @var{SS}, const mp_odrf_mpfr_root_fdfsolver_driver_t * @var{T})
-Allocate a new instance of a derivative--based solver of type @var{T}
-and store a pointer to it in the variable referenced by @var{SS}; if
-successful return @cnull{}, otherwise return a pointer to an error
-descriptor.
+@deftypefun {mp_odrf_mpfr_root_fdfsolver_t *} mp_odrf_mpfr_root_fdfsolver_alloc (const mp_odrf_mpfr_root_fdfsolver_driver_t * @var{T})
+Allocate a new instance of a derivative--based solver of type @var{T};
+if successful return a pointer to the solver structurre, otherwise
+return @cnull{}.  This function returns @cnull{} only when memory
+allocation through @cfunc{malloc} fails.
 @end deftypefun
 
 
@@ -528,13 +527,11 @@ Free all the memory associated with the solver @var{S}.
 @end deftypefun
 
 
-@deftypefun mp_odrf_operation_code_t mp_odrf_mpfr_root_fdfsolver_set (mp_odrf_mpfr_root_fdfsolver_t * @var{S}, mp_odrf_mpfr_function_fdf_t * @var{fdf}, mpfr_ptr @var{root}, const mp_odrf_error_t ** @var{EE})
+@deftypefun mp_odrf_code_t mp_odrf_mpfr_root_fdfsolver_set (mp_odrf_mpfr_root_fdfsolver_t * @var{S}, mp_odrf_mpfr_function_fdf_t * @var{fdf}, mpfr_ptr @var{root})
 Initialize, or reinitialize, an existing solver @var{S} to use the
 function and derivative @var{FDF} and the initial guess @var{root}.
-
-When successful return @code{MP_ODRF_OK} and leave @var{EE} untouched,
-if an error occurs return @code{MP_ODRF_ERROR} and store in the variable
-referenced by @var{EE} a pointer to an error descriptor.
+When successful return @code{MP_ODRF_OK}, otherwise return an error
+code.
 @end deftypefun
 
 
@@ -569,7 +566,7 @@ types described in this section.
 @subsection Mathematical function prototypes
 
 
-@deftypefn {Prototype Typedef} mp_odrf_operation_code_t mp_odrf_mpfr_wrapped_f_t (mpfr_ptr @var{Y}, mpfr_ptr @var{X}, void * @var{params}, const mp_odrf_error_t ** @var{EE})
+@deftypefn {Prototype Typedef} int mp_odrf_mpfr_wrapped_f_t (mpfr_ptr @var{Y}, mpfr_ptr @var{X}, void * @var{params})
 Function prototype used to describe the signature of the C function that
 computes the mathematical function subject of the problem.
 
@@ -578,14 +575,13 @@ function at abscissa @var{X} and store the result in @var{Y} which must
 be already initialised.  @var{params} can be used to hand custom data to
 the function implementation.
 
-When successful the function must return @code{MP_ODRF_OK} and leave
-@var{EE} untouched; if an error occurs, it must return
-@code{MP_ODRF_ERROR} and store in the variable referenced by @var{EE} a
-pointer to an error descriptor.
+When successful the function must return @code{MP_ODRF_OK}.  If an error
+occurs: it must return an appropriate error code, which can be a value
+of type @code{mp_odrf_code_t} or a user--defined code.
 @end deftypefn
 
 
-@deftypefn {Prototype Typedef} mp_odrf_operation_code_t mp_odrf_mpfr_wrapped_fdf_t (mpfr_ptr @var{X}, void * @var{PARAMS}, mpfr_ptr @var{Y}, mpfr_ptr @var{DY}, const mp_odrf_error_t ** @var{EE})
+@deftypefn {Prototype Typedef} int mp_odrf_mpfr_wrapped_fdf_t (mpfr_ptr @var{DY}, mpfr_ptr @var{Y}, mpfr_ptr @var{X}, void * @var{PARAMS})
 Function prototype used to describe the signature of the C function that
 computes the mathematical function subject of the problem and its
 derivative.
@@ -595,10 +591,9 @@ function and its derivative at abscissa @var{X} and store the result in
 @var{Y} and @var{DY} which must be already initialised.  @var{params}
 can be used to hand custom data to the function implementation.
 
-When successful the function must return @code{MP_ODRF_OK} and leave
-@var{EE} untouched; if an error occurs, it must return
-@code{MP_ODRF_ERROR} and store in the variable referenced by @var{EE} a
-pointer to an error descriptor.
+When successful the function must return @code{MP_ODRF_OK}.  If an error
+occurs: it must return an appropriate error code, which can be a value
+of type @code{mp_odrf_code_t} or a user--defined code.
 @end deftypefn
 
 @c page
@@ -622,12 +617,10 @@ to @cnull{}.
 @end deftp
 
 
-@deftypefn {Preprocessor Macro} mp_odrf_operation_code_t MP_ODRF_MPFR_FN_EVAL (mp_odrf_mpfr_function_t * @var{F}, mpfr_ptr @var{Y}, mpfr_ptr @var{X}, const mp_odrf_error_t ** @var{EE})
+@deftypefn {Preprocessor Macro} int MP_ODRF_MPFR_FN_EVAL (mp_odrf_mpfr_function_t * @var{F}, mpfr_ptr @var{Y}, mpfr_ptr @var{X})
 Apply the math function described by @var{F} to the value @var{X} and
-store the result in @var{Y}.  When successful return @code{MP_ODRF_OK}
-and leave @var{EE} untouched; if an error occurs return
-@code{MP_ODRF_ERROR} and store in the variable referenced by @var{EE} a
-pointer to an error descriptor.
+store the result in @var{Y}.  When successful return @code{MP_ODRF_OK};
+if an error occurs return a suitable error code.
 @end deftypefn
 
 @c ------------------------------------------------------------
@@ -680,9 +673,8 @@ parameters_final (parameters_t * params)
   mpfr_clear(params->c);
 @}
 
-mp_odrf_operation_code_t
-function (mpfr_ptr Y, mpfr_ptr X, void * params_,
-          const mp_odrf_error_t ** EE)
+int
+function (mpfr_ptr Y, mpfr_ptr X, void * params_)
 @{
   mpfr_t        tmp1;
   mpfr_t        tmp2;
@@ -712,8 +704,7 @@ main (int argc MP_ODRF_MPFR_UNUSED, char * argv [])
     .function = function,
     .params   = &params
   @};
-  const mp_odrf_error_t *  E;
-  mp_odrf_operation_code_t rv;
+  int                      rv;
   double                   x = 2.4;
 
   parameters_init(&params);
@@ -721,7 +712,7 @@ main (int argc MP_ODRF_MPFR_UNUSED, char * argv [])
   mpfr_init(X);
   @{
     mpfr_set_d(X, 2.4, GMP_RNDN);
-    rv = MP_ODRF_MPFR_FN_EVAL(&F, Y, X, &E);
+    rv = MP_ODRF_MPFR_FN_EVAL(&F, Y, X);
     mpfr_fprintf(stderr,
       "%s: the function value is: %20RNf, should be close to: %f\n",
       argv[0], Y, (3.0 * x * x + 2.0 * x + 1.0));
@@ -762,30 +753,25 @@ to @cnull{}.
 @end deftp
 
 
-@deftypefn {Preprocessor Macro} mp_odrf_operation_code_t MP_ODRF_MPFR_FN_FDF_EVAL_F (mp_odrf_mpfr_function_fdf_t * @var{FDF}, mpfr_ptr @var{Y}, mpfr_ptr @var{X}, const mp_odrf_error_t ** @var{EE})
+@deftypefn {Preprocessor Macro} int MP_ODRF_MPFR_FN_FDF_EVAL_F (mp_odrf_mpfr_function_fdf_t * @var{FDF}, mpfr_ptr @var{Y}, mpfr_ptr @var{X})
 Apply the math function described by @var{FDF} to the value @var{X} and
-store the result in @var{Y}.  When successful return @code{MP_ODRF_OK}
-and leave @var{EE} untouched; if an error occurs return
-@code{MP_ODRF_ERROR} and store in the variable referenced by @var{EE} a
-pointer to an error descriptor.
+store the result in @var{Y}.  When successful return @code{MP_ODRF_OK};
+if an error occurs return a suitable error code.
 @end deftypefn
 
 
-@deftypefn {Preprocessor Macro} mp_odrf_operation_code_t MP_ODRF_MPFR_FN_FDF_EVAL_DF (mp_odrf_mpfr_function_fdf_t * @var{FDF}, mpfr_ptr @var{Y}, mpfr_ptr @var{X}, const mp_odrf_error_t ** @var{EE})
+@deftypefn {Preprocessor Macro} int MP_ODRF_MPFR_FN_FDF_EVAL_DF (mp_odrf_mpfr_function_fdf_t * @var{FDF}, mpfr_ptr @var{Y}, mpfr_ptr @var{X})
 Apply the derivative of the math function described by @var{FDF} to the
 value @var{X} and store the result in @var{Y}.  When successful return
-@code{MP_ODRF_OK} and leave @var{EE} untouched; if an error occurs
-return @code{MP_ODRF_ERROR} and store in the variable referenced by
-@var{EE} a pointer to an error descriptor.
+@code{MP_ODRF_OK}; if an error occurs return a suitable error code.
 @end deftypefn
 
 
-@deftypefn {Preprocessor Macro} mp_odrf_operation_code_t MP_ODRF_MPFR_FN_FDF_EVAL_F_DF (mp_odrf_mpfr_function_fdf_t * @var{FDF}, mpfr_ptr @var{X}, mpfr_ptr @var{Y}, mpfr_ptr @var{DY}, const mp_odrf_error_t ** @var{EE})
+@deftypefn {Preprocessor Macro} int MP_ODRF_MPFR_FN_FDF_EVAL_F_DF (mp_odrf_mpfr_function_fdf_t * @var{FDF}, mpfr_ptr @var{DY}, mpfr_ptr @var{Y}, mpfr_ptr @var{X})
 Apply both the math function described by @var{FDF} and its derivative
 to the value @var{X} and store the result in @var{Y} and @var{DY}.  When
-successful return @code{MP_ODRF_OK} and leave @var{EE} untouched; if an
-error occurs return @code{MP_ODRF_ERROR} and store in the variable
-referenced by @var{EE} a pointer to an error descriptor.
+successful return @code{MP_ODRF_OK}; if an error occurs return a
+suitable error code.
 @end deftypefn
 
 @c ------------------------------------------------------------
@@ -851,9 +837,8 @@ parameters_final (parameters_t * params)
   mpfr_clear(params->c);
 @}
 
-static mp_odrf_operation_code_t
-function (mpfr_ptr Y, mpfr_ptr X, void * params_,
-          const mp_odrf_error_t ** EE)
+static int
+function (mpfr_ptr Y, mpfr_ptr X, void * params_)
 @{
   mpfr_t        tmp1;
   mpfr_t        tmp2;
@@ -873,9 +858,8 @@ function (mpfr_ptr Y, mpfr_ptr X, void * params_,
   return MP_ODRF_OK;
 @}
 
-static mp_odrf_operation_code_t
-derivative (mpfr_ptr DY, mpfr_ptr X, void * params_,
-            const mp_odrf_error_t ** EE)
+static int
+derivative (mpfr_ptr DY, mpfr_ptr X, void * params_)
 @{
   mpfr_t        tmp1;
   mpfr_t        tmp2;
@@ -894,15 +878,14 @@ derivative (mpfr_ptr DY, mpfr_ptr X, void * params_,
   return MP_ODRF_OK;
 @}
 
-mp_odrf_operation_code_t
-function_and_derivative (mpfr_ptr X, void * params_,
-                         mpfr_ptr Y, mpfr_ptr DY,
-                         const mp_odrf_error_t ** EE)
+static int
+function_and_derivative (mpfr_ptr DY, mpfr_ptr Y,
+                         mpfr_ptr X, void * params_)
 @{
   mp_odrf_operation_code_t      rv;
-  rv = function(Y, X, params_, EE);
+  rv = function(Y, X, params_);
   if (MP_ODRF_OK == rv) @{
-     rv = derivative(DY, X, params_, EE);
+     rv = derivative(DY, X, params_);
   @}
   return rv;
 @}
@@ -918,8 +901,7 @@ main (int argc MP_ODRF_UNUSED, char * argv [])
     .fdf        = function_and_derivative,
     .params     = &params
   @};
-  const mp_odrf_error_t *       E;
-  mp_odrf_operation_code_t      rv;
+  int                           rv;
   double                        x = 2.4;
 
   parameters_init(&params);
@@ -928,13 +910,13 @@ main (int argc MP_ODRF_UNUSED, char * argv [])
   mpfr_init(X);
   @{
     mpfr_set_d(X, 2.4, GMP_RNDN);
-    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(&FDF, X, Y, DY, &E);
+    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(&FDF, DY, Y, X);
     mpfr_fprintf(stderr,
                  "%s: y = %20RNf, dy = %20RNf, should be %f and %f\n",
                  argv[0], Y, DY,
                  (3.0 * x * x + 2.0 * x + 1.0),
                  (2.0 * 3.0 * x + 2.0));
-    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, Y, X, &E);
+    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, Y, X);
     mpfr_fprintf(stderr, "%s: y  = %20RNf\n", argv[0], Y);
     rv = MP_ODRF_MPFR_FN_FDF_EVAL_DF(&FDF, DY, X);
     mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], DY);
@@ -1000,9 +982,8 @@ parameters_final (parameters_t * params)
   mpfr_clear(params->ell);
 @}
 
-static mp_odrf_operation_code_t
-function (mpfr_ptr Y, mpfr_ptr X, void * params_,
-          const mp_odrf_error_t ** EE)
+static int
+function (mpfr_ptr Y, mpfr_ptr X, void * params_)
 @{
   mpfr_t        tmp;
   parameters_t *params = params_;
@@ -1017,9 +998,8 @@ function (mpfr_ptr Y, mpfr_ptr X, void * params_,
   return MP_ODRF_OK;
 @}
 
-static mp_odrf_operation_code_t
-derivative (mpfr_ptr DY, mpfr_ptr X, void * params_,
-            const mp_odrf_error_t ** EE)
+static int
+derivative (mpfr_ptr DY, mpfr_ptr X, void * params_)
 @{
   mpfr_t        tmp1, tmp2;
   parameters_t *params = params_;
@@ -1037,10 +1017,9 @@ derivative (mpfr_ptr DY, mpfr_ptr X, void * params_,
   return MP_ODRF_OK;
 @}
 
-mp_odrf_operation_code_t
-function_and_derivative (mpfr_ptr X, void * params_,
-                         mpfr_ptr Y, mpfr_ptr DY,
-                         const mp_odrf_error_t ** EE)
+static int
+function_and_derivative (mpfr_ptr DY, mpfr_ptr Y,
+                         mpfr_ptr X, void * params_)
 @{
   mpfr_t        tmp;
   parameters_t *params = params_;
@@ -1071,8 +1050,7 @@ main (int argc MP_ODRF_UNUSED, char * argv [])
     .params     = &params
   @};
   double                        x = 2.4;
-  const mp_odrf_error_t *       E;
-  mp_odrf_operation_code_t      rv;
+  int                           rv;
 
   parameters_init(&params);
   mpfr_init(DY);
@@ -1080,16 +1058,16 @@ main (int argc MP_ODRF_UNUSED, char * argv [])
   mpfr_init(X);
   @{
     mpfr_set_d(X, 2.4, GMP_RNDN);
-    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(&FDF, X, Y, DY, &E);
+    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F_DF(&FDF, DY, Y, X);
     mpfr_fprintf(stderr,
                  "%s: y = %20RNf, dy = %20RNf, should be %f and %f\n",
                  argv[0], Y, DY,
                  (exp(2.0 * x)),
                  (2.0 * exp(2.0 * x)));
-    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, Y, X, &E);
-    mpfr_fprintf(stderr, "%s: y  = %20RNf\n", argv[0], Y, &E);
+    rv = MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, Y, X);
+    mpfr_fprintf(stderr, "%s: y  = %20RNf\n", argv[0], Y);
     rv = MP_ODRF_MPFR_FN_FDF_EVAL_DF(&FDF, DY, X);
-    mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], DY, &E);
+    mpfr_fprintf(stderr, "%s: dy = %20RNf\n", argv[0], DY);
   @}
   mpfr_clear(X);
   mpfr_clear(Y);
@@ -1131,9 +1109,9 @@ different methods can be substituted at runtime without modifications to
 the code.
 
 
-@deftypefun int mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver * @var{s})
-@deftypefunx int mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver * @var{s})
-These functions perform a single iteration of the solver @var{s}.  If the
+@deftypefun mp_odrf_operation_code_t mp_odrf_mpfr_root_fsolver_iterate (mp_odrf_mpfr_root_fsolver_t * @var{S})
+@deftypefunx mp_odrf_operation_code_t mp_odrf_mpfr_root_fdfsolver_iterate (mp_odrf_mpfr_root_fdfsolver_t * @var{S})
+These functions perform a single iteration of the solver @var{S}.  If the
 iteration encounters an unexpected problem then an error code will be
 returned:
 
@@ -1155,18 +1133,18 @@ bounding the root.  This information can be accessed with the following
 auxiliary functions.
 
 
-@deftypefun mpfr_ptr mp_odrf_mpfr_root_fsolver_root (const mp_odrf_mpfr_root_fsolver * @var{s})
-@deftypefunx mpfr_ptr mp_odrf_mpfr_root_fdfsolver_root (const mp_odrf_mpfr_root_fdfsolver * @var{s})
+@deftypefun mpfr_ptr mp_odrf_mpfr_root_fsolver_root (const mp_odrf_mpfr_root_fsolver_t * @var{S})
+@deftypefunx mpfr_ptr mp_odrf_mpfr_root_fdfsolver_root (const mp_odrf_mpfr_root_fdfsolver_t * @var{S})
 These functions return the current estimate of the root for the solver
-@var{s}.  The referenced number is part of solver's state, so it must
+@var{S}.  The referenced number is part of solver's state, so it must
 @strong{not} be modified.
 @end deftypefun
 
 
-@deftypefun mpfr_ptr mp_odrf_mpfr_root_fsolver_x_lower (const mp_odrf_mpfr_root_fsolver * @var{s})
-@deftypefunx mpfr_ptr mp_odrf_mpfr_root_fsolver_x_upper (const mp_odrf_mpfr_root_fsolver * @var{s})
+@deftypefun mpfr_ptr mp_odrf_mpfr_root_fsolver_x_lower (const mp_odrf_mpfr_root_fsolver_t * @var{S})
+@deftypefunx mpfr_ptr mp_odrf_mpfr_root_fsolver_x_upper (const mp_odrf_mpfr_root_fsolver_t * @var{S})
 These functions return the current bracketing interval for the solver
-@var{s}.  The referenced numbers are part of solver's state, so they must
+@var{S}.  The referenced numbers are part of solver's state, so they must
 @strong{not} be modified.
 @end deftypefun
 
