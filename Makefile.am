@@ -50,12 +50,15 @@ libmpodrf_la_SOURCES	= \
 #### tests
 
 check_PROGRAMS	= \
-	tests/version		\
-	tests/root-bracketing	\
-	tests/root-polishing	\
-	tests/macros-0		\
-	tests/macros-1		\
-	tests/macros-2
+	tests/version			\
+	tests/root-bracketing		\
+	tests/root-polishing		\
+	tests/macros-0			\
+	tests/macros-1			\
+	tests/macros-2			\
+	tests/bisection-example		\
+	tests/falsepos-example		\
+	tests/brent-example
 
 TESTS				= $(check_PROGRAMS)
 
@@ -86,6 +89,18 @@ tests_macros_1_SOURCES		= tests/macros-1.c $(mp_odrf_tests_sources)
 tests_macros_2_CPPFLAGS		= $(mp_odrf_tests_cppflags)
 tests_macros_2_LDADD		= $(mp_odrf_tests_ldadd)
 tests_macros_2_SOURCES		= tests/macros-2.c $(mp_odrf_tests_sources)
+
+tests_bisection_example_CPPFLAGS= $(mp_odrf_tests_cppflags)
+tests_bisection_example_LDADD	= $(mp_odrf_tests_ldadd)
+tests_bisection_example_SOURCES	= tests/bisection-example.c $(mp_odrf_tests_sources)
+
+tests_falsepos_example_CPPFLAGS	= $(mp_odrf_tests_cppflags)
+tests_falsepos_example_LDADD	= $(mp_odrf_tests_ldadd)
+tests_falsepos_example_SOURCES	= tests/falsepos-example.c $(mp_odrf_tests_sources)
+
+tests_brent_example_CPPFLAGS	= $(mp_odrf_tests_cppflags)
+tests_brent_example_LDADD	= $(mp_odrf_tests_ldadd)
+tests_brent_example_SOURCES	= tests/brent-example.c $(mp_odrf_tests_sources)
 
 ## --------------------------------------------------------------------
 
