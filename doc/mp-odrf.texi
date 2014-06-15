@@ -1863,40 +1863,43 @@ main (void)
 
 
 @smallexample
+#include <stdio.h>
 #include <stdlib.h>
-#include <mp_odrf_mpfr.h>
+#include <mp-odrf.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
+sine_function (mpfr_ptr Y, mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_sin(y, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_sin(Y, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 static int
-cosine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
+cosine_function (mpfr_ptr Y, mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_cos(y, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_cos(Y, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 static int
-sine_and_cosine_function (mpfr_t x, void * p MP_ODRF_MPFR_UNUSED,
-                          mpfr_t y, mpfr_t dy)
+sine_and_cosine_function (mpfr_ptr DY, mpfr_ptr Y,
+                          mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_sin(y,  x, GMP_RNDN);
-  mpfr_cos(dy, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_sin(Y,  X, GMP_RNDN);
+  mpfr_cos(DY, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 
 int
 main (void)
 @{
-  mp_odrf_mpfr_root_fdfsolver *solver;
+  mp_odrf_mpfr_root_fdfsolver_t *       solver;
+  mp_odrf_mpfr_function_fdf_t           F = @{
+    .f      = sine_function,
+    .df     = cosine_function,
+    .fdf    = sine_and_cosine_function,
+    .params = NULL
+  @};
   mpfr_t                epsabs, epsrel, x1;
-  int                   e, iteration_count = 0;
-  mp_odrf_mpfr_function_fdf    F = @{ .f      = sine_function,
-                              .df     = cosine_function,
-                              .fdf    = sine_and_cosine_function,
-                              .params = NULL @};
+  int                   rv, iteration_count = 0;
 
   printf("*** One-dimensional root finding:\n\
 \tnewton algorithm,\n\
@@ -1904,7 +1907,8 @@ main (void)
 
   solver = mp_odrf_mpfr_root_fdfsolver_alloc(mp_odrf_mpfr_root_fdfsolver_newton);
   if (NULL == solver) @{
-    perror("error initialising solver");
+    fprintf(stderr, "error: %s\n",
+            mp_odrf_strerror(MP_ODRF_ERROR_NO_MEMORY_FOR_STATE_STRUCT));
     exit(EXIT_FAILURE);
   @}
 
@@ -1916,9 +1920,9 @@ main (void)
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
     mpfr_set_d(epsrel,  1e-6, GMP_RNDN);
 
-    e = mp_odrf_mpfr_root_fdfsolver_set(solver, &F, x1);
-    if (GSL_SUCCESS != e) @{
-      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+    rv = mp_odrf_mpfr_root_fdfsolver_set(solver, &F, x1);
+    if (MP_ODRF_OK != rv) @{
+      fprintf(stderr, "error setting up: %s\n", mp_odrf_strerror(rv));
       goto end;
     @}
 
@@ -1927,9 +1931,9 @@ main (void)
                 mp_odrf_mpfr_root_fdfsolver_root(solver));
 
     do @{
-      e = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
-      if (GSL_SUCCESS != e) @{
-        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+      rv = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
+      if (MP_ODRF_OK != rv) @{
+        fprintf(stderr, "error iterating: %s\n", mp_odrf_strerror(rv));
         goto end;
       @}
 
@@ -1937,19 +1941,19 @@ main (void)
                   iteration_count++,
                   mp_odrf_mpfr_root_fdfsolver_root(solver));
 
-      e = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fdfsolver_root(solver),
-                                epsabs, epsrel);
-      switch (e) @{
-      case GSL_SUCCESS:
+      rv = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fdfsolver_root(solver),
+                                        epsabs, epsrel);
+      switch (rv) @{
+      case MP_ODRF_OK:
         goto solved;
-      case GSL_CONTINUE:
+      case MP_ODRF_CONTINUE:
         mpfr_set(x1, mp_odrf_mpfr_root_fdfsolver_root(solver), GMP_RNDN);
         break;
       default:
-        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        fprintf(stderr, "error testing: %s\n", mp_odrf_strerror(rv));
         goto end;
       @}
-    @} while (GSL_CONTINUE == e);
+    @} while (MP_ODRF_OK == rv);
   solved:
     mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fdfsolver_root(solver));
   @}
@@ -1968,40 +1972,43 @@ main (void)
 
 
 @smallexample
+#include <stdio.h>
 #include <stdlib.h>
-#include <mp_odrf_mpfr.h>
+#include <mp-odrf.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
+sine_function (mpfr_ptr Y, mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_sin(y, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_sin(Y, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 static int
-cosine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
+cosine_function (mpfr_ptr Y, mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_cos(y, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_cos(Y, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 static int
-sine_and_cosine_function (mpfr_t x, void * p MP_ODRF_MPFR_UNUSED,
-                          mpfr_t y, mpfr_t dy)
+sine_and_cosine_function (mpfr_ptr DY, mpfr_ptr Y,
+                          mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_sin(y,  x, GMP_RNDN);
-  mpfr_cos(dy, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_sin(Y,  X, GMP_RNDN);
+  mpfr_cos(DY, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 
 int
 main (void)
 @{
-  mp_odrf_mpfr_root_fdfsolver *solver;
+  mp_odrf_mpfr_root_fdfsolver_t *       solver;
+  mp_odrf_mpfr_function_fdf_t           F = @{
+    .f      = sine_function,
+    .df     = cosine_function,
+    .fdf    = sine_and_cosine_function,
+    .params = NULL
+  @};
   mpfr_t                epsabs, epsrel, x1;
-  int                   e, iteration_count = 0;
-  mp_odrf_mpfr_function_fdf    F = @{ .f      = sine_function,
-                              .df     = cosine_function,
-                              .fdf    = sine_and_cosine_function,
-                              .params = NULL @};
+  int                   rv, iteration_count = 0;
 
   printf("*** One-dimensional root finding:\n\
 \tsecant algorithm,\n\
@@ -2009,7 +2016,8 @@ main (void)
 
   solver = mp_odrf_mpfr_root_fdfsolver_alloc(mp_odrf_mpfr_root_fdfsolver_secant);
   if (NULL == solver) @{
-    perror("error initialising solver");
+    fprintf(stderr, "error: %s\n",
+            mp_odrf_strerror(MP_ODRF_ERROR_NO_MEMORY_FOR_STATE_STRUCT));
     exit(EXIT_FAILURE);
   @}
 
@@ -2021,9 +2029,9 @@ main (void)
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
     mpfr_set_d(epsrel,  1e-6, GMP_RNDN);
 
-    e = mp_odrf_mpfr_root_fdfsolver_set(solver, &F, x1);
-    if (GSL_SUCCESS != e) @{
-      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+    rv = mp_odrf_mpfr_root_fdfsolver_set(solver, &F, x1);
+    if (MP_ODRF_OK != rv) @{
+      fprintf(stderr, "error setting up: %s\n", mp_odrf_strerror(rv));
       goto end;
     @}
 
@@ -2032,9 +2040,9 @@ main (void)
                 mp_odrf_mpfr_root_fdfsolver_root(solver));
 
     do @{
-      e = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
-      if (GSL_SUCCESS != e) @{
-        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+      rv = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
+      if (MP_ODRF_OK != rv) @{
+        fprintf(stderr, "error iterating: %s\n", mp_odrf_strerror(rv));
         goto end;
       @}
 
@@ -2042,19 +2050,19 @@ main (void)
                   iteration_count++,
                   mp_odrf_mpfr_root_fdfsolver_root(solver));
 
-      e = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fdfsolver_root(solver),
-                                epsabs, epsrel);
-      switch (e) @{
-      case GSL_SUCCESS:
+      rv = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fdfsolver_root(solver),
+                                        epsabs, epsrel);
+      switch (rv) @{
+      case MP_ODRF_OK:
         goto solved;
-      case GSL_CONTINUE:
+      case MP_ODRF_CONTINUE:
         mpfr_set(x1, mp_odrf_mpfr_root_fdfsolver_root(solver), GMP_RNDN);
         break;
       default:
-        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        fprintf(stderr, "error testing: %s\n", mp_odrf_strerror(rv));
         goto end;
       @}
-    @} while (GSL_CONTINUE == e);
+    @} while (MP_ODRF_OK == rv);
   solved:
     mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fdfsolver_root(solver));
   @}
@@ -2073,40 +2081,43 @@ main (void)
 
 
 @smallexample
+#include <stdio.h>
 #include <stdlib.h>
-#include <mp_odrf_mpfr.h>
+#include <mp-odrf.h>
 
 static int
-sine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
+sine_function (mpfr_ptr Y, mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_sin(y, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_sin(Y, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 static int
-cosine_function (mpfr_t y, mpfr_t x, void * p MP_ODRF_MPFR_UNUSED)
+cosine_function (mpfr_ptr Y, mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_cos(y, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_cos(Y, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 static int
-sine_and_cosine_function (mpfr_t x, void * p MP_ODRF_MPFR_UNUSED,
-                          mpfr_t y, mpfr_t dy)
+sine_and_cosine_function (mpfr_ptr DY, mpfr_ptr Y,
+                          mpfr_ptr X, void * params_ MP_ODRF_UNUSED)
 @{
-  mpfr_sin(y,  x, GMP_RNDN);
-  mpfr_cos(dy, x, GMP_RNDN);
-  return GSL_SUCCESS;
+  mpfr_sin(Y,  X, GMP_RNDN);
+  mpfr_cos(DY, X, GMP_RNDN);
+  return MP_ODRF_OK;
 @}
 
 int
 main (void)
 @{
-  mp_odrf_mpfr_root_fdfsolver *solver;
-  mpfr_t                guess, epsabs, residual;
-  int                   e, iteration_count = 0;
-  mp_odrf_mpfr_function_fdf    F = @{ .f      = sine_function,
-                              .df     = cosine_function,
-                              .fdf    = sine_and_cosine_function,
-                              .params = NULL @};
+  mp_odrf_mpfr_root_fdfsolver_t *       solver;
+  mp_odrf_mpfr_function_fdf_t           FDF = @{
+    .f      = sine_function,
+    .df     = cosine_function,
+    .fdf    = sine_and_cosine_function,
+    .params = NULL
+  @};
+  mpfr_t                epsabs, residual, x1;
+  int                   rv, iteration_count = 0;
 
   printf("*** One-dimensional root finding:\n\
 \tsteffenson algorithm,\n\
@@ -2114,62 +2125,60 @@ main (void)
 
   solver = mp_odrf_mpfr_root_fdfsolver_alloc(mp_odrf_mpfr_root_fdfsolver_steffenson);
   if (NULL == solver) @{
-    perror("error initialising solver");
+    fprintf(stderr, "error: %s\n",
+            mp_odrf_strerror(MP_ODRF_ERROR_NO_MEMORY_FOR_STATE_STRUCT));
     exit(EXIT_FAILURE);
   @}
 
-  mpfr_init(guess);
   mpfr_init(epsabs);
   mpfr_init(residual);
+  mpfr_init(x1);
   @{
-    mpfr_set_d(guess, -1.0, GMP_RNDN);
+    mpfr_set_d(x1,     -1.0, GMP_RNDN);
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
 
-    e = mp_odrf_mpfr_root_fdfsolver_set(solver, &F, guess);
-    if (GSL_SUCCESS != e) @{
-      fprintf(stderr, "error setting up: %s\n", gsl_strerror(e));
+    rv = mp_odrf_mpfr_root_fdfsolver_set(solver, &FDF, x1);
+    if (MP_ODRF_OK != rv) @{
+      fprintf(stderr, "error setting up: %s\n", mp_odrf_strerror(rv));
       goto end;
     @}
 
-    MP_ODRF_MPFR_FN_FDF_EVAL_F(&F, residual,
-                        mp_odrf_mpfr_root_fdfsolver_root(solver));
-    mpfr_printf("iteration %2d: x = %-32Rf, f(x) = %-32Rf\n",
+    mpfr_printf("iteration %2d: x = %-32Rf\n",
                 iteration_count++,
-                mp_odrf_mpfr_root_fdfsolver_root(solver),
-                residual);
+                mp_odrf_mpfr_root_fdfsolver_root(solver));
 
     do @{
-      e = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
-      if (GSL_SUCCESS != e) @{
-        fprintf(stderr, "error iterating: %s\n", gsl_strerror(e));
+      rv = mp_odrf_mpfr_root_fdfsolver_iterate(solver);
+      if (MP_ODRF_OK != rv) @{
+        fprintf(stderr, "error iterating: %s\n", mp_odrf_strerror(rv));
         goto end;
       @}
 
-      MP_ODRF_MPFR_FN_FDF_EVAL_F(&F, residual,
-                          mp_odrf_mpfr_root_fdfsolver_root(solver));
-      mpfr_printf("iteration %2d: x = %-32Rf, f(x) = %-32Rf\n",
+      mpfr_printf("iteration %2d: x = %-32Rf\n",
                   iteration_count++,
-                  mp_odrf_mpfr_root_fdfsolver_root(solver),
-                  residual);
+                  mp_odrf_mpfr_root_fdfsolver_root(solver));
 
-      e = mp_odrf_mpfr_root_test_residual(residual, epsabs);
-      switch (e) @{
-      case GSL_SUCCESS:
+      MP_ODRF_MPFR_FN_FDF_EVAL_F(&FDF, residual,
+                                 mp_odrf_mpfr_root_fdfsolver_root(solver));
+
+      rv = mp_odrf_mpfr_root_test_residual(residual, epsabs);
+      switch (rv) @{
+      case MP_ODRF_OK:
         goto solved;
-      case GSL_CONTINUE:
+      case MP_ODRF_CONTINUE:
+        mpfr_set(x1, mp_odrf_mpfr_root_fdfsolver_root(solver), GMP_RNDN);
         break;
       default:
-        fprintf(stderr, "error testing: %s\n", gsl_strerror(e));
+        fprintf(stderr, "error testing: %s\n", mp_odrf_strerror(rv));
         goto end;
       @}
-    @} while (GSL_CONTINUE == e);
+    @} while (MP_ODRF_OK == rv);
   solved:
     mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fdfsolver_root(solver));
   @}
  end:
-  mpfr_clear(residual);
   mpfr_clear(epsabs);
-  mpfr_clear(guess);
+  mpfr_clear(x1);
   mp_odrf_mpfr_root_fdfsolver_free(solver);
   exit(EXIT_SUCCESS);
 @}

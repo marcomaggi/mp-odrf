@@ -58,7 +58,10 @@ check_PROGRAMS	= \
 	tests/macros-2			\
 	tests/bisection-example		\
 	tests/falsepos-example		\
-	tests/brent-example
+	tests/brent-example		\
+	tests/newton-example		\
+	tests/secant-example		\
+	tests/steffenson-example
 
 TESTS				= $(check_PROGRAMS)
 
@@ -101,6 +104,18 @@ tests_falsepos_example_SOURCES	= tests/falsepos-example.c $(mp_odrf_tests_source
 tests_brent_example_CPPFLAGS	= $(mp_odrf_tests_cppflags)
 tests_brent_example_LDADD	= $(mp_odrf_tests_ldadd)
 tests_brent_example_SOURCES	= tests/brent-example.c $(mp_odrf_tests_sources)
+
+tests_newton_example_CPPFLAGS	= $(mp_odrf_tests_cppflags)
+tests_newton_example_LDADD	= $(mp_odrf_tests_ldadd)
+tests_newton_example_SOURCES	= tests/newton-example.c $(mp_odrf_tests_sources)
+
+tests_secant_example_CPPFLAGS	= $(mp_odrf_tests_cppflags)
+tests_secant_example_LDADD	= $(mp_odrf_tests_ldadd)
+tests_secant_example_SOURCES	= tests/secant-example.c $(mp_odrf_tests_sources)
+
+tests_steffenson_example_CPPFLAGS = $(mp_odrf_tests_cppflags)
+tests_steffenson_example_LDADD	= $(mp_odrf_tests_ldadd)
+tests_steffenson_example_SOURCES = tests/steffenson-example.c $(mp_odrf_tests_sources)
 
 ## --------------------------------------------------------------------
 
