@@ -45,12 +45,12 @@ main (void)
     .params   = NULL
   };
   mpfr_t	x_lower, x_upper;
-  mpfr_t	epsabs, epsrel;
+  mpfr_t	epsabs, epsrel, x1;
   int		rv, iteration_count = 0;
 
   printf("*** One-dimensional root finding:\n\
 \tfalsepos algorithm,\n\
-\tinterval stop criterion.\n");
+\tdelta stop criterion.\n");
 
   solver = mp_odrf_mpfr_root_fsolver_alloc(mp_odrf_mpfr_root_fsolver_falsepos);
   if (NULL == solver) {
@@ -63,11 +63,13 @@ main (void)
   mpfr_init(x_upper);
   mpfr_init(epsabs);
   mpfr_init(epsrel);
+  mpfr_init(x1);
   {
     mpfr_set_d(x_lower, -1.0, GMP_RNDN);
     mpfr_set_d(x_upper, +0.5, GMP_RNDN);
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
     mpfr_set_d(epsrel,  1e-3, GMP_RNDN);
+    mpfr_set(x1, x_lower, GMP_RNDN);
 
     rv = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper);
     if (MP_ODRF_OK !=rv) {
@@ -94,13 +96,15 @@ main (void)
                   mp_odrf_mpfr_root_fsolver_x_lower(solver),
                   mp_odrf_mpfr_root_fsolver_x_upper(solver));
 
-      rv = mp_odrf_mpfr_root_test_interval(mp_odrf_mpfr_root_fsolver_x_lower(solver),
-					   mp_odrf_mpfr_root_fsolver_x_upper(solver),
-					   epsabs, epsrel);
+      rv = mp_odrf_mpfr_root_test_delta(x1, mp_odrf_mpfr_root_fsolver_root(solver),
+					epsabs, epsrel);
       switch (rv) {
       case MP_ODRF_OK:
         goto solved;
       case MP_ODRF_CONTINUE:
+	/* The  X0  at  this  iteration  becomes  the  X1  at  the  next
+	   iteration. */
+	mpfr_set(x1, mp_odrf_mpfr_root_fsolver_root(solver), GMP_RNDN);
         break;
       default:
         fprintf(stderr, "error testing: %s\n", mp_odrf_strerror(rv));
@@ -111,6 +115,7 @@ main (void)
     mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fsolver_root(solver));
   }
  end:
+  mpfr_clear(x1);
   mpfr_clear(epsrel);
   mpfr_clear(epsabs);
   mpfr_clear(x_upper);

@@ -45,12 +45,12 @@ main (void)
     .params   = NULL
   };
   mpfr_t	x_lower, x_upper;
-  mpfr_t	epsabs, epsrel;
+  mpfr_t	epsabs, residual;
   int		rv, iteration_count = 0;
 
   printf("*** One-dimensional root finding:\n\
 \tBrent algorithm,\n\
-\tinterval stop criterion.\n");
+\tresidual stop criterion.\n");
 
   solver = mp_odrf_mpfr_root_fsolver_alloc(mp_odrf_mpfr_root_fsolver_brent);
   if (NULL == solver) {
@@ -62,12 +62,11 @@ main (void)
   mpfr_init(x_lower);
   mpfr_init(x_upper);
   mpfr_init(epsabs);
-  mpfr_init(epsrel);
+  mpfr_init(residual);
   {
     mpfr_set_d(x_lower, -1.0, GMP_RNDN);
     mpfr_set_d(x_upper, +0.5, GMP_RNDN);
     mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
-    mpfr_set_d(epsrel,  1e-3, GMP_RNDN);
 
     rv = mp_odrf_mpfr_root_fsolver_set(solver, &F, x_lower, x_upper);
     if (MP_ODRF_OK !=rv) {
@@ -94,9 +93,9 @@ main (void)
                   mp_odrf_mpfr_root_fsolver_x_lower(solver),
                   mp_odrf_mpfr_root_fsolver_x_upper(solver));
 
-      rv = mp_odrf_mpfr_root_test_interval(mp_odrf_mpfr_root_fsolver_x_lower(solver),
-					   mp_odrf_mpfr_root_fsolver_x_upper(solver),
-					   epsabs, epsrel);
+      MP_ODRF_MPFR_FN_EVAL(&F, residual,
+			   mp_odrf_mpfr_root_fsolver_root(solver));
+      rv = mp_odrf_mpfr_root_test_residual(residual, epsabs);
       switch (rv) {
       case MP_ODRF_OK:
         goto solved;
@@ -111,7 +110,7 @@ main (void)
     mpfr_printf("result = %Rf\n", mp_odrf_mpfr_root_fsolver_root(solver));
   }
  end:
-  mpfr_clear(epsrel);
+  mpfr_clear(residual);
   mpfr_clear(epsabs);
   mpfr_clear(x_upper);
   mpfr_clear(x_lower);

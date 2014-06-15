@@ -59,7 +59,7 @@ main (void)
     .fdf    = sine_and_cosine_function,
     .params = NULL
   };
-  mpfr_t		epsabs, residual, x1;
+  mpfr_t		epsabs, residual, initial_guess;
   int			rv, iteration_count = 0;
 
   printf("*** One-dimensional root finding:\n\
@@ -73,14 +73,14 @@ main (void)
     exit(EXIT_FAILURE);
   }
 
+  mpfr_init(initial_guess);
   mpfr_init(epsabs);
   mpfr_init(residual);
-  mpfr_init(x1);
   {
-    mpfr_set_d(x1,     -1.0, GMP_RNDN);
-    mpfr_set_d(epsabs,  1e-6, GMP_RNDN);
+    mpfr_set_d(initial_guess, -1.0, GMP_RNDN);
+    mpfr_set_d(epsabs,        1e-6, GMP_RNDN);
 
-    rv = mp_odrf_mpfr_root_fdfsolver_set(solver, &FDF, x1);
+    rv = mp_odrf_mpfr_root_fdfsolver_set(solver, &FDF, initial_guess);
     if (MP_ODRF_OK != rv) {
       fprintf(stderr, "error setting up: %s\n", mp_odrf_strerror(rv));
       goto end;
@@ -109,7 +109,6 @@ main (void)
       case MP_ODRF_OK:
         goto solved;
       case MP_ODRF_CONTINUE:
-        mpfr_set(x1, mp_odrf_mpfr_root_fdfsolver_root(solver), GMP_RNDN);
         break;
       default:
         fprintf(stderr, "error testing: %s\n", mp_odrf_strerror(rv));
@@ -121,7 +120,7 @@ main (void)
   }
  end:
   mpfr_clear(epsabs);
-  mpfr_clear(x1);
+  mpfr_clear(initial_guess);
   mp_odrf_mpfr_root_fdfsolver_free(solver);
   exit(EXIT_SUCCESS);
 }

@@ -108,6 +108,8 @@ main (void)
       case MP_ODRF_OK:
         goto solved;
       case MP_ODRF_CONTINUE:
+	/* The  X0  at  this  iteration  becomes  the  X1  at  the  next
+	   iteration. */
         mpfr_set(x1, mp_odrf_mpfr_root_fdfsolver_root(solver), GMP_RNDN);
         break;
       default:
