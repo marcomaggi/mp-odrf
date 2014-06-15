@@ -104,7 +104,7 @@ files in a temporary location, example: to see what will happen:
 
 to really do it:
 
-    $ make install DESTDIR=/tmp/template
+    $ make install DESTDIR=/tmp/mp-odrf
 
   After the installation it is  possible to verify the installed library
 against the test suite with:
