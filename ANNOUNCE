@@ -1,4 +1,4 @@
-Subject: [announce] MP ODRF revision 0.1d0
+Subject: [announce] MP ODRF revision 0.1d1
 
 	    Multiple Precision One-Dimensional Root-Finding
 	    ===============================================
@@ -22,6 +22,11 @@ License version 3.0.
 
 		<http://github.com/marcomaggi/mp-odrf/>
 
+
+Notes for revision 0.1d1
+------------------------
+
+*
 
 Notes for revision 0.1d0
 ------------------------

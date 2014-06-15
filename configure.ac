@@ -2,7 +2,7 @@ dnl @configure_input@
 dnl
 
 AC_PREREQ([2.69])
-AC_INIT([Multiple Precision One-Dimensional Root-Finding],[0.1d0],
+AC_INIT([Multiple Precision One-Dimensional Root-Finding],[0.1d1],
   [marco.maggi-ipsu@poste.it],
   [mp-odrf],[https://github.com/marcomaggi/mp-odrf/])
 AC_CONFIG_SRCDIR([src/])
