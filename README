@@ -102,7 +102,7 @@ enabling the maintainer mode:
     $ make install
 
   The  Makefile supports  the  DESTDIR environment  variable to  install
-files in a temporary location, example: to see what will happen:
+files in a temporary location, to see what will happen:
 
     $ make -n install DESTDIR=/tmp/mp-odrf
 
